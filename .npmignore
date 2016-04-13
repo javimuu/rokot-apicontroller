@@ -4,3 +4,4 @@ test
 /out
 /typings
 .npmignore
+.node-version
