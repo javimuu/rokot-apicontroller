@@ -1,0 +1,41 @@
+{
+  "name": "rokot-apicontroller",
+  "version": "0.1.0",
+  "description": "",
+  "main": "./dist/index.js",
+  "typings":"./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p source/tsconfig.json -d",
+    "debug": "npm run build && node . --debug=5858",
+    "debugtest": "npm run build && mocha --debug-brk",
+    "test": "npm run build && mocha"
+  },
+  "devDependencies": {
+    "rokot-log": "^0.1.0",
+    "rokot-test": "^0.1.3",
+    "ts-loader": "^0.8.2",
+    "typescript": "^1.8.10"
+  },
+  "dependencies": {
+    "bunyan": "^1.5.1",
+    "body-parser": "^1.15.0",
+    "express": "^4.13.4",
+    "reflect-metadata": "^0.1.3",
+    "underscore": "^1.8.3"
+  },
+  "keywords": [
+    "typescript",
+    "express",
+    "api"
+  ],
+  "author": "developers@rocketmakers.com",
+  "license": "MIT",
+  "homepage": "https://github.com/Rocketmakers/rokot-apicontroller",
+  "repository": {
+    "type": "git",
+    "url": "git://git@github.com:Rocketmakers/rokot-apicontroller.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Rocketmakers/rokot-apicontroller/issues"
+  }
+}
