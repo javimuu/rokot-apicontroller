@@ -27,7 +27,7 @@ You will also need these ambient dependencies:
 >NOTE: you might already have some of these ambient dependencies installed!
 
 ```
-typings install body-parser express express-serve-static-core mime node serve-static underscore -SA
+typings i dt~body-parser dt~express dt~express-serve-static-core dt~mime dt~node dt~serve-static dt~underscore -SG
 ```
 
 ## Example
@@ -109,10 +109,7 @@ export class GroupController {
 
 ### Notes
 The route methods have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery>`
-This is used 2 fold:
-
-1. It strongly types all aspects of the request to make consuming them simpler within the route
-2. It allows the `SourceCodeControllerMetadataCompiler` to extract the full metadata and allow the creation of api clients
+It strongly types all aspects of the request to make consuming them simpler within the route
 
 `IApiVoidRequest<TResponse,TParams,TQuery>` is a type alias for `IApiRequest<void,TResponse,TParams,TQuery>`
 
@@ -131,9 +128,6 @@ The route verb (`get`,`put`,`post`,`delete` etc) is determined by:
 The route path is determined by combining the (optional) `@routePrefix` and `@route` decorator values
 
 ## Consumed Libraries
-
-### [inversify](http://inversify.io/)
-A great TypeScript IoC container framework!
 
 ### [rokot-test](https://github.com/Rocketmakers/rokot-test)
 The testing framework used within the Rokot Platform!
