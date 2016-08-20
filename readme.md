@@ -5,7 +5,7 @@ Rokot - [Rocketmakers](http://www.rocketmakers.com/) TypeScript NodeJs Platform
 ## Introduction
 
 A typescript decorators based solution to declaratively define routes for REST based api
-This library creates metadata about the defined routes to allow api client and test generation
+This library creates metadata about the defined routes to allow auto route generation
 
 >The Rokot platform components heavily rely on usage of the [typings](https://github.com/typings/typings) utility for typescript definitions management.
 If you don't have `typings` installed:
@@ -35,7 +35,7 @@ typings i dt~body-parser dt~bunyan dt~express dt~express-serve-static-core dt~mi
 If you want to specify any additional custom Middleware, you can define them as below and annotate with the `middleware` decorator
 
 ```typescript
-import {middleware} from "rokot-apicontroller";
+import {api} from "rokot-apicontroller";
 
 class Middleware {
   @api.middlewareFunction("one")
@@ -84,10 +84,10 @@ export interface IRequest<TBody, TResponse, TParams, TQuery> extends IExpressApi
   user: IUser
 }
 
-export interface IVoidRequest<TResponse, TParams, TQuery> extends IRequest<void, TResponse, TParams, TQuery>{
+export interface IGetRequest<TResponse, TParams, TQuery> extends IRequest<void, TResponse, TParams, TQuery>{
 }
 
-export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery>{
+export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IRequest<TBody, TResponse, TParams, TQuery> {
   user: IUser
   constructor(orig: IExpressRequest){
     super(orig)
@@ -102,8 +102,8 @@ export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends 
 }
 
 export class CustomExpressRouteBuilder extends ExpressRouteBuilder{
-  protected createHandler(req: express.Request, res: express.Response){
-    return new CustomExpressApiRequest<any, any, any, any>({req,res})
+  protected createHandler(req: IExpressRequest){
+    return new CustomExpressApiRequest<any, any, any, any>(req)
   }
 }
 ```
@@ -182,8 +182,9 @@ It strongly types all aspects of the request to make consuming them simpler with
 
 There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TOriginal` with `{ req: express.Request, res: express.Response }`
 
-
 The `@api.include` decorator allows you to specify a controller name, path prefix, and optionally the middleware keys to apply to all the controller contained routes.
+
+The `@api.route` decorator must be supplied on all controller routes, it specifies the route path of the operation.
 
 The `@api.middleware("three")` decorator on the route method allows you to specify addition middleware to implement within the route.
 
@@ -195,7 +196,7 @@ The route verb (`get`,`put`,`post`,`delete` etc) is determined by:
 2. If you specify an `@api.acceptVerbs(...)` decorator - that verb (or those verbs) will be used.
 3. if all else fails, `get`.
 
-The route path is determined by combining the (optional) `routePrefix` from `@api.include` and `@route` decorator values
+The route path is determined by combining the (optional) `routePrefix` from `@api.include` with the `@api.route` decorator values
 
 ## Consumed Libraries
 

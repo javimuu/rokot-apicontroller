@@ -48,12 +48,12 @@ export class ExpressRouteBuilder extends RouteBuilder {
 
   protected createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any, any>) : express.RequestHandler {
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      routeHandler(this.createHandler(req,res));
+      routeHandler(this.createHandler({req,res}));
     }
   }
 
-  protected createHandler(req: express.Request, res: express.Response){
-    return new ExpressApiRequest<any, any, any, any>({req,res})
+  protected createHandler(req: IExpressRequest){
+    return new ExpressApiRequest<any, any, any, any>(req)
   }
 
   protected setupRoute(route: IApiControllerRoute, routeVerb: IApiControllerRouteVerb, requestHandlers: express.RequestHandler[]){

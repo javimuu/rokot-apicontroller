@@ -3,7 +3,7 @@ import * as _ from "underscore";
 import * as fs from "fs";
 import {ConsoleLogger,Logger} from "rokot-log";
 import "./testMiddleware";
-import {ExpressRouteBuilder, ExpressApiRequest,IExpressApiRequest} from "../expressRouteBuilder";
+import {ExpressRouteBuilder, ExpressApiRequest,IExpressApiRequest,IExpressRequest} from "../expressRouteBuilder";
 import * as express from "express";
 import {api,apiControllers, middlewares} from "../decorators";
 export interface IUser{
@@ -19,14 +19,15 @@ export interface IVoidRequest<TResponse, TParams, TQuery> extends IExpressApiReq
   isAuthenticated(): boolean
 }
 
-export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery>{
+export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IRequest<TBody, TResponse, TParams, TQuery>{
   isAuthenticated(): boolean{
     throw new Error("Arghh")
   }
 }
+
 export class CustomExpressRouteBuilder extends ExpressRouteBuilder{
-  protected createHandler(req: express.Request, res: express.Response){
-    return new CustomExpressApiRequest<any, any, any, any>({req,res})
+  protected createHandler(req: IExpressRequest){
+    return new CustomExpressApiRequest<any, any, any, any>(req)
   }
 }
 

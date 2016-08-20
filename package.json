@@ -1,7 +1,7 @@
 {
   "name": "rokot-apicontroller",
-  "version": "0.1.4",
-  "description": "",
+  "version": "0.1.5",
+  "description": "Api Controller generation for express",
   "main": "./dist/index.js",
   "typings":"./dist/index.d.ts",
   "scripts": {

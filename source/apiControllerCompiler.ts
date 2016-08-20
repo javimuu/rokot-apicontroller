@@ -67,7 +67,7 @@ export class ApiControllerCompiler implements IApiControllerCompiler {
         this.logger.trace(`- ${r.memberName} (ignored)`)
         return;
       }
-      this.logger.trace(`- ${r.memberName}`)
+      this.logger.trace(`- ${r.memberName} ${r.routeVerbs.map(rv => `[${rv.verb}] ${rv.route}`).join(",")}`)
     })
     if (!routes || !routes.length) {
       this.logger.trace(`> no routes found (ignored)`)
