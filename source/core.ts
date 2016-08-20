@@ -29,69 +29,78 @@ export interface IApi {
   errors: string[]
   controllers: IApiController[];
   /** only available at designtime */
-  referenceTypes?: IApiType[];
+//  referenceTypes?: IApiType[];
 }
 
-export const enum TypeKind{
-  Unknown,
-  Simple,
-  InterfaceRef,
-  EnumRef,
-  Interface,
-  Enum,
-  Union,
-  Intersection,
-  Anonymous,
-  TypeArg,
-  TypeParam,
-}
+// export const enum TypeKind{
+//   Unknown,
+//   Simple,
+//   InterfaceRef,
+//   EnumRef,
+//   Interface,
+//   Enum,
+//   Union,
+//   Intersection,
+//   Anonymous,
+//   TypeArg,
+//   TypeParam,
+// }
 
-export interface IApiType{
-  name?: string;
-  isArray?: boolean;
-  kind: TypeKind;
-  args?: IApiType[];
-  extends?: IApiType[];
-  subTypes?: IApiType[];
-  members?: IApiNamedType[]
-  //code?: string;
-}
-
-export interface IApiNamedType{
-  name: string;
-  value?: number;
-  optional?: boolean;
-  type?: IApiType;
-}
+// export interface IApiType{
+//   name?: string;
+//   isArray?: boolean;
+//   kind: TypeKind;
+//   args?: IApiType[];
+//   extends?: IApiType[];
+//   subTypes?: IApiType[];
+//   members?: IApiNamedType[]
+//   //code?: string;
+// }
+//
+// export interface IApiNamedType{
+//   name: string;
+//   value?: number;
+//   optional?: boolean;
+//   type?: IApiType;
+// }
 
 export interface IApiController {
   name: string;
   routes: IApiControllerRoute[];
   /** only available at runtime */
-  controllerClass?: IApiControllerClass;
+  controllerClass?: INewableApiController;
 }
 
-export interface IApiControllerClass{
-  new(...args:any[]): any
+export interface INewable<T>{
+  new(...args:any[]): T
+}
+export interface IMiddewareFunction {
+  key:string
+  func: Function
+}
+export interface INewableConstructor<TNew extends INewable<T>, T>{
+  (newable: TNew, name: string): T
 }
 
-export interface IApiControllerClassConstructor{
-  (controllerClass: IApiControllerClass, name: string): any
+export interface INewableApiController extends INewable<IApiController>{}
+
+export interface INewableApiControllerConstructor extends INewableConstructor<INewableApiController, IApiController>{
 }
 
-export interface IApiControllerRouteTypes {
-  request : IApiType;
-  response : IApiType;
-  params: IApiType;
-  queryString: IApiType;
-}
+// export interface IApiControllerRouteTypes {
+//   request : IApiType;
+//   response : IApiType;
+//   params: IApiType;
+//   queryString: IApiType;
+// }
 
 export interface IApiControllerRoute {
-  name: string;
-  memberName: string;
-  routeVerbs: IApiControllerRouteVerb[];
-  middlewares?: string[];
-  types?: IApiControllerRouteTypes;
+  name: string
+  memberName: string
+  routeVerbs: IApiControllerRouteVerb[]
+  middlewares?: string[]
+  func: Function
+//  types?: IApiControllerRouteTypes;
 }
 
 export interface IApiControllerRouteVerb {
@@ -100,9 +109,9 @@ export interface IApiControllerRouteVerb {
 }
 
 export interface IApiControllerCompiler{
-  compile(): IApi;
+  compile(apiControllers: IApiController[], middlewareKeys: string[]): IApi
 }
 
 export interface IRouteBuilder {
-  build(api: IApi): void;
+  build(): IApi
 }

@@ -27,7 +27,7 @@ You will also need these ambient dependencies:
 >NOTE: you might already have some of these ambient dependencies installed!
 
 ```
-typings i dt~body-parser dt~express dt~express-serve-static-core dt~mime dt~node dt~serve-static dt~underscore -SG
+typings i dt~body-parser dt~bunyan dt~express dt~express-serve-static-core dt~mime dt~node dt~serve-static dt~underscore -SG
 ```
 
 ## Example
@@ -38,35 +38,39 @@ If you want to specify any additional custom Middleware, you can define them as 
 import {middleware} from "rokot-apicontroller";
 
 class Middleware {
-  @middleware("one")
+  @api.middlewareFunction("one")
   static one = (req: Express.Request, res: Express.Response, next: () => void) => {
     console.log("one")
     next();
   }
-  @middleware("two")
+  @api.middlewareFunction("two")
   static two(req: Express.Request, res: Express.Response, next: () => void) {
     console.log("two")
+    next();
+  }
+  @api.middlewareFunction("three")
+  three(req: Express.Request, res: Express.Response, next: () => void) {
+    console.log("three")
     next();
   }
 }
 ```
 
-You can optionally register the middleware directly via the `middlewareRegistry`
+You can optionally register the middleware directly via the `middlewares` registry
 ```typescript
-import {middlewareRegistry} from "rokot-apicontroller";
+import {middlewares} from "rokot-apicontroller";
 
-middlewareRegistry.register("three", (req: Express.Request, res: Express.Response, next: () => void) => {
-  console.log("three")
+middlewares.push({key: "four", func: (req: Express.Request, res: Express.Response, next: () => void) => {
+  console.log("four")
   next();
-})
+}})
 
-middlewareRegistry.register("other", someImportedMiddleware);
 ```
 
 You can then specify controllers and their routes:
 
 ```typescript
-import {controller,acceptVerbs,route,routePrefix,middlewareKeys,IApiRequest,IApiVoidRequest} from "rokot-apicontroller";
+import {api,IApiRequest,IApiVoidRequest} from "rokot-apicontroller";
 
 interface IGroup{
   id: string;
@@ -79,27 +83,29 @@ interface IUser{
   name: string;
 }
 
-@controller("groups",["one"])
-@routePrefix("groups")
-export class GroupController {
-  @route(":id")
-  @middlewareKeys("two")
+@api.include("middleware", "/middleware", ["one", "two"])
+class MiddlewareController {
+  @api.route(":id")
+  @api.acceptVerbs("get", "options")
+  @api.middleware("three")
   get(req: IApiVoidRequest<IGroup,{id: string},void>) {
     req.send(200, {id: req.params.id, name:"group", members:[{id:"1", name: "User 1"}]});
   }
 
-  @acceptVerbs("get")
+  @api.route()
+  @api.acceptVerbs("get", "options")
   getAll(req: IApiVoidRequest<IGroup[],void,void>) {
     req.send(200, [
       {id: "1", name:"group", members:[{id:"1", name: "User 1"}]}
     ]);
   }
 
+  @api.route()
   post(req: IApiRequest<IGroup,IGroup,void,void>) {
     req.send(201, req.body);
   }
 
-  @route(":id")
+  @api.route(":id")
   delete(req: IApiVoidRequest<void,{id: string},void>) {
     var id = req.params.id;
     req.send(204)
@@ -108,24 +114,24 @@ export class GroupController {
 ```
 
 ### Notes
-The route methods have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery>`
+The route methods should be instance members, and have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery>`
 It strongly types all aspects of the request to make consuming them simpler within the route
 
 `IApiVoidRequest<TResponse,TParams,TQuery>` is a type alias for `IApiRequest<void,TResponse,TParams,TQuery>`
 
-The `@controller` decorator allows you to specify a controller name and optionally the middleware keys to apply to all the controller contained routes.
+The `@api.include` decorator allows you to specify a controller name, path prefix, and optionally the middleware keys to apply to all the controller contained routes.
 
-The `@middlewareKeys` decorator on the route method allows you to specify addition middleware to implement within the route.
+The `@api.middleware("three")` decorator on the route method allows you to specify addition middleware to implement within the route.
 
 The controllers middleware will run (in specified order) before the routes middleware is run (also in specified order)
 
 The route verb (`get`,`put`,`post`,`delete` etc) is determined by:
 
 1. If the route method is named exactly as a verb - that verb is used.
-2. If you specify an `@acceptVerbs("get", "head")` decorator - that verb (or those verbs) will be used.
+2. If you specify an `@api.acceptVerbs(...)` decorator - that verb (or those verbs) will be used.
 3. if all else fails, `get`.
 
-The route path is determined by combining the (optional) `@routePrefix` and `@route` decorator values
+The route path is determined by combining the (optional) `routePrefix` from `@api.include` and `@route` decorator values
 
 ## Consumed Libraries
 

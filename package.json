@@ -1,11 +1,12 @@
 {
   "name": "rokot-apicontroller",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "",
   "main": "./dist/index.js",
   "typings":"./dist/index.d.ts",
   "scripts": {
     "build": "tsc -p source -d",
+    "postinstall": "node post-install.js",
     "debug": "npm run build && node . --debug=5858",
     "debugtest": "npm run build && mocha --debug-brk",
     "test": "npm run build && mocha"

@@ -5,10 +5,10 @@ import * as fs from "fs";
 import "./controllers";
 import "./middleware";
 import {ExpressRouteBuilder} from "../../expressRouteBuilder";
-import {RuntimeControllerMetadataCompiler} from "../../compilers/runtimeCompiler";
+import {ApiControllerCompiler} from "../../apiControllerCompiler";
 //import {SourceCodeControllerMetadataCompiler} from "../../compilers/sourceCodeCompiler";
 import {Logger,ConsoleLogger} from "rokot-log";
-import {middleware} from "../../decorators";
+import {middlewares,apiControllers} from "../../decorators";
 import {IApi, IApiControllerCompiler} from "../../core";
 var logger = ConsoleLogger.create("test server", {level:"trace"})
 
@@ -24,19 +24,20 @@ class Server {
     })
   }
 
-  static init(api: IApi) {
+  static init() {
     var app = express();
     app.use(express.static('static'));
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
 
-    this.logRoutes(api, logger);
-    const builder = new ExpressRouteBuilder(logger, app);
-    const built = builder.build(api);
-    if (!built) {
+    const builder = new ExpressRouteBuilder(logger, app, apiControllers, middlewares);
+    const api = builder.build();
+    if (!api || api.errors.length) {
       console.log("Unable to build express routes - Service stopping!")
       return;
     }
+
+    this.logRoutes(api, logger);
 
     var server = http.createServer(app).listen(3000, (err) => {
       if (err) throw err
@@ -47,20 +48,20 @@ class Server {
   }
 }
 
-function compile(name: string, compiler: IApiControllerCompiler) {
-  const compiled = compiler.compile();
-  fs.writeFileSync(name, JSON.stringify(compiled, null, 2))
-  return compiled;
-}
+// function compile(name: string, compiler: IApiControllerCompiler) {
+//   const compiled = compiler.compile();
+//   fs.writeFileSync(name, JSON.stringify(compiled, null, 2))
+//   return compiled;
+// }
 
-export class Boot{
-  static run(){
-    const reflectCompiler = new RuntimeControllerMetadataCompiler(logger)
-    const reflected = reflectCompiler.compile();
-    if (reflected.errors.length) {
-      console.log("Unable to start express service - errors found during api controller compilation!")
-    } else{
-      Server.init(reflected);
-    }
-  }
-}
+// export class Boot{
+//   static run(){
+//     const reflectCompiler = new RuntimeControllerMetadataCompiler(logger)
+//     const api = reflectCompiler.compile(apiControllers, middlewares.map(m => m.key));
+//     if (api.errors.length) {
+//       console.log("Unable to start express service - errors found during api controller compilation!")
+//     } else{
+//       Server.init();
+//     }
+//   }
+// }
