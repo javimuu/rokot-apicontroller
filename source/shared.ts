@@ -1,6 +1,6 @@
 import * as _ from "underscore";
 import {AllowedHttpVerbs} from "./decorators";
-import {INewable, IApiController, IApiControllerRoute, INewableApiController, INewableConstructor, INewableApiControllerConstructor} from "./core";
+import {INewable, IApiController, IApiControllerRoute, INewableApiController, INewableConstructor} from "./core";
 
 // export class ApiControllerVisitor{
 //   private static array(type: IApiType, value: string){

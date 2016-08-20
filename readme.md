@@ -67,10 +67,54 @@ middlewares.push({key: "four", func: (req: Express.Request, res: Express.Respons
 
 ```
 
+You can create your own request to customise the request object:
+
+```typescript
+import {IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
+import * as express from "express";
+
+export interface IUser{
+  id: string;
+  userName: string
+}
+
+export interface IRequest<TBody, TResponse, TParams, TQuery> extends IExpressApiRequest<TBody, TResponse, TParams, TQuery>{
+  isAuthenticated(): boolean
+  isUnauthenticated(): boolean
+  user: IUser
+}
+
+export interface IVoidRequest<TResponse, TParams, TQuery> extends IRequest<void, TResponse, TParams, TQuery>{
+}
+
+export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery>{
+  user: IUser
+  constructor(orig: IExpressRequest){
+    super(orig)
+    this.user = orig.req.user;
+  }
+  isAuthenticated(): boolean{
+    return this.original.req.isAuthenticated()
+  }
+  isUnauthenticated(): boolean{
+    return this.original.req.isUnauthenticated()
+  }
+}
+
+export class CustomExpressRouteBuilder extends ExpressRouteBuilder{
+  protected createHandler(req: express.Request, res: express.Response){
+    return new CustomExpressApiRequest<any, any, any, any>({req,res})
+  }
+}
+```
+
 You can then specify controllers and their routes:
 
 ```typescript
-import {api,IApiRequest,IApiVoidRequest} from "rokot-apicontroller";
+import {api, IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
+import {IRequest, IVoidRequest, IUser} from "./expressRequest"; // from file above
+import * as express from "express";
+
 
 interface IGroup{
   id: string;
@@ -78,46 +122,66 @@ interface IGroup{
   members: IUser[];
 }
 
-interface IUser{
-  id: string;
-  name: string;
-}
-
 @api.include("middleware", "/middleware", ["one", "two"])
 class MiddlewareController {
   @api.route(":id")
   @api.acceptVerbs("get", "options")
   @api.middleware("three")
-  get(req: IApiVoidRequest<IGroup,{id: string},void>) {
-    req.send(200, {id: req.params.id, name:"group", members:[{id:"1", name: "User 1"}]});
+  get(req: IVoidRequest<IGroup,{id: string},void>) {
+    req.sendOk({id: req.params.id, name:"group", members:[{id:"1", name: "User 1"}]});
   }
 
   @api.route()
   @api.acceptVerbs("get", "options")
-  getAll(req: IApiVoidRequest<IGroup[],void,void>) {
-    req.send(200, [
+  getAll(req: IVoidRequest<IGroup[],void,void>) {
+    req.sendOk([
       {id: "1", name:"group", members:[{id:"1", name: "User 1"}]}
     ]);
   }
 
   @api.route()
-  post(req: IApiRequest<IGroup,IGroup,void,void>) {
-    req.send(201, req.body);
+  post(req: IRequest<IGroup,IGroup,void,void>) {
+    req.sendCreated(req.body);
   }
 
   @api.route(":id")
-  delete(req: IApiVoidRequest<void,{id: string},void>) {
+  delete(req: IVoidRequest<void,{id: string},void>) {
     var id = req.params.id;
-    req.send(204)
+    req.sendNoContent()
   }
 }
 ```
 
+To build your routes you can now
+```typescript
+import {CustomExpressRouteBuilder} from "./expressRequest"; // from file above
+import {apiControllers, middlewares} from "rokot-apicontroller";
+import {ConsoleLogger} from "rokot-log";
+import * as express from 'express';
+
+const app = express();
+const logger = ConsoleLogger.create("Api Routes", {level: "trace"});
+
+const builder = new CustomExpressRouteBuilder(logger, app, apiControllers, middlewares);
+const api = builder.build();
+if (!api || api.errors.length) {
+  console.log("Unable to build express routes - Service stopping!")
+  return;
+}
+
+app.listen(this.port, () => {
+  console.log(`Cosmos listening on port ${this.port}!`);
+});
+
+```
+
 ### Notes
-The route methods should be instance members, and have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery>`
+The route methods should be instance members, and have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery,TOriginal>`
 It strongly types all aspects of the request to make consuming them simpler within the route
 
-`IApiVoidRequest<TResponse,TParams,TQuery>` is a type alias for `IApiRequest<void,TResponse,TParams,TQuery>`
+
+There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TOriginal` with `{ req: express.Request, res: express.Response }`
+
 
 The `@api.include` decorator allows you to specify a controller name, path prefix, and optionally the middleware keys to apply to all the controller contained routes.
 

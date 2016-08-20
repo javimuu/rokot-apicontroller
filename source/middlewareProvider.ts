@@ -1,7 +1,7 @@
 import {Shared,ApiControllerExplorer} from "./shared";
 import {Logger} from "bunyan";
 import * as _ from "underscore";
-import {IRouteBuilder,IMiddewareFunction, INewableApiControllerConstructor, IApiControllerRoute, IApiController, IApiRequestHandler, IApiControllerRouteVerb, IApi} from "./core";
+import {IRouteBuilder,IMiddewareFunction, IApiControllerRoute, IApiController, IApiRequestHandler, IApiControllerRouteVerb, IApi} from "./core";
 import {ApiControllerCompiler} from "./apiControllerCompiler";
 
 export class MiddlewareProvider {

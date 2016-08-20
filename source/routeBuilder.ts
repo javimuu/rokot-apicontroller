@@ -11,7 +11,7 @@ export abstract class RouteBuilder implements IRouteBuilder {
     this.provider = new MiddlewareProvider(logger,middlewares);
   }
 
-  protected abstract createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any>) : Function;
+  protected abstract createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any, any>) : Function;
   protected abstract setupRoute(route: IApiControllerRoute, routeVerb: IApiControllerRouteVerb, requestHandlers: Function[]);
 
   build() {
@@ -27,7 +27,7 @@ export abstract class RouteBuilder implements IRouteBuilder {
   }
 
   private processControllerRoute(c: IApiController, r: IApiControllerRoute, mws: {[key: string]: Function}){
-    let routeHandler:IApiRequestHandler<any, any, any, any> = c.controllerClass[r.memberName]
+    let routeHandler:IApiRequestHandler<any, any, any, any, any> = c.controllerClass[r.memberName]
     if (!routeHandler) {
       routeHandler = (...args) => {
         const instance = Shared.construct(c.controllerClass, c.name, this.controllerConstructor);

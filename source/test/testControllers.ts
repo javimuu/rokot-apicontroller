@@ -1,5 +1,5 @@
-import {api} from "../../decorators";
-import {IExpressApiRequest} from "../../expressRouteBuilder";
+import {api} from "../decorators";
+import {IExpressApiRequest} from "../expressRouteBuilder";
 
 export type IRequest<TBody, TResponse, TParams, TQuery> = IExpressApiRequest<TBody, TResponse, TParams, TQuery>
 export type IVoidRequest<TResponse, TParams, TQuery> = IExpressApiRequest<void, TResponse, TParams, TQuery>
@@ -15,8 +15,24 @@ class MiddlewareController {
 
   @api.route()
   @api.acceptVerbs("get", "options")
-  getAll(req: IVoidRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
+  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.send(200,null)
+  }
+}
+
+@api.include("missingMiddleware", "/missingMiddleware", ["one", "two"])
+class MissingMiddlewareController {
+  @api.route(":id")
+  @api.acceptVerbs("get", "options")
+  @api.middleware("five")
+  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+    req.sendOk(null)
+  }
+
+  @api.route()
+  @api.acceptVerbs("get", "options")
+  getAll(req: IVoidRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
+    req.sendOk(null)
   }
 }
 
@@ -29,8 +45,8 @@ class SimpleController {
   }
 
   @api.route()
-  @api.acceptVerbs("get", "options")
-  getAll(req: IVoidRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
+  @api.acceptVerbs("get")
+  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.send(200,null)
   }
 }
@@ -45,11 +61,20 @@ class SimpleRouteClashController {
 
   @api.route()
   @api.acceptVerbs("get", "options")
-  getAll(req: IVoidRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
+  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.send(200,null)
   }
 }
 
-@api.include("empty", "/empty")
-class EmptyController {
+@api.include("noVerbs")
+class NoVerbsRouteController {
+  @api.route()
+  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+    req.send(200,null)
+  }
+
+  @api.route()
+  post(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
+    req.send(200,null)
+  }
 }
