@@ -71,10 +71,10 @@ export class ExpressRouteBuilder extends RouteBuilder {
         this.validateRequestInput(req, "body", route.validateBody)
         this.validateRequestInput(req, "params", route.validateParams)
         this.validateRequestInput(req, "query", route.validateQuery)
+        next()
       } catch(e) {
-        res.status(401).send("Invalid")
+        next(e)
       }
-      next()
     }
   }
 

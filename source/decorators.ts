@@ -12,8 +12,12 @@ interface IApiRouteMiddleware {
   keys: string[]
 }
 
-interface IApiValidator {
-  validate<T>(item: T) : T
+interface IApiValidator<T> {
+  validate : IApiValidatorFunction<T>
+}
+
+export interface IApiValidatorFunction<T> {
+  (item: T): T
 }
 
 interface IApiRouteVerb {
@@ -24,9 +28,9 @@ interface IApiItemDecoration extends IPropertyMetadata {
   route?: IApiRoute
   middleware?: IApiRouteMiddleware
   verb?: IApiRouteVerb
-  bodyValidator?: IApiValidator
-  queryValidator?: IApiValidator
-  paramsValidator?: IApiValidator
+  bodyValidator?: IApiValidator<any>
+  queryValidator?: IApiValidator<any>
+  paramsValidator?: IApiValidator<any>
 }
 
 interface IApiDecoration {
@@ -107,20 +111,21 @@ export class Api{
     return apiDecorators.propCollect<IApiRouteVerb>("verb", (t, propertyName, type) => ({propertyName, verbs}))
   }
 
-  bodyValidator<T>(validate: (item: T) => T) {
+  bodyValidator<T>(validate: IApiValidatorFunction<T>) {
     return this.validator<T>(validate, "bodyValidator")
   }
 
-  queryValidator<T>(validate: (item: T) => T) {
+  queryValidator<T>(validate: IApiValidatorFunction<T>) {
     return this.validator<T>(validate, "queryValidator")
   }
 
-  paramsValidator<T>(validate: (item: T) => T) {
+  paramsValidator<T>(validate: IApiValidatorFunction<T>) {
+    this.validator(v => v, "")
     return this.validator<T>(validate, "paramsValidator")
   }
 
-  private validator<T>(validate: (item: T) => T, itemType: string) {
-    return apiDecorators.propCollect<IApiValidator>(itemType, (t, propertyName, type) => ({propertyName, validate}))
+  private validator<T>(validate: IApiValidatorFunction<T>, itemType: string) {
+    return apiDecorators.propCollect<IApiValidator<T>>(itemType, (t, propertyName, type) => ({propertyName, validate}))
   }
 }
 
