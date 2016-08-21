@@ -62,7 +62,7 @@ export class ExpressRouteBuilder extends RouteBuilder {
   }
 
 
-  protected createValidatorMiddleware(route: IApiControllerRoute): Function{
+  protected createValidatorMiddleware(route: IApiControllerRoute): express.RequestHandler{
     if (!route.validateBody && !route.validateParams && !route.validateQuery) {
       return;
     }
@@ -84,5 +84,16 @@ export class ExpressRouteBuilder extends RouteBuilder {
 
   protected setupRoute(route: IApiControllerRoute, routeVerb: IApiControllerRouteVerb, requestHandlers: express.RequestHandler[]){
     this.server[routeVerb.verb](routeVerb.route, ...requestHandlers);
+  }
+
+  protected invokeRouteFunction(func: Function, instance: any, handler: ExpressApiRequest<any, any, any, any>){
+    try{
+      const promise = super.invokeRouteFunction(func, instance, handler)
+      if (promise && promise.catch) {
+        promise.catch(e => handler.native.next(e))
+      }
+    } catch (e){
+      handler.native.next(e)
+    }
   }
 }

@@ -45,6 +45,6 @@ export abstract class RouteBuilder implements IRouteBuilder {
   }
 
   protected invokeRouteFunction(func: Function, instance: any, handler: IApiRequest<any, any, any, any, any>){
-    func.apply(instance, [handler])
+    return func.apply(instance, [handler])
   }
 }
