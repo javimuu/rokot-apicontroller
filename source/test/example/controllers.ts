@@ -2,7 +2,7 @@ import {api} from "../../decorators";
 import {IExpressApiRequest} from "../../expressRouteBuilder";
 
 export type IRequest<TBody, TResponse, TParams, TQuery> = IExpressApiRequest<TBody, TResponse, TParams, TQuery>
-export type IVoidRequest<TResponse, TParams, TQuery> = IExpressApiRequest<void, TResponse, TParams, TQuery>
+export type IVoidRequest<TResponse, TParams, TQuery> = IRequest<void, TResponse, TParams, TQuery>
 
 @api.include("middleware", "/middleware", ["one", "two"])
 class MiddlewareController {

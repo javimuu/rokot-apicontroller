@@ -1,7 +1,7 @@
 import {Shared,ApiControllerExplorer} from "./shared";
 import * as _ from "underscore";
 import {Logger} from "bunyan";
-import {IApiControllerRoute,IMiddewareFunction,IApiControllerRouteVerb, IApiController,IApiControllerCompiler, IApi,INewableConstructor, INewableApiController} from "./core";
+import {IApiControllerRoute,IMiddewareFunction,IApiControllerRouteVerb, IApiController,IApiControllerCompiler, IApi,INewableConstructor,INewable} from "./core";
 
 interface IGroup {
   key: string;
@@ -11,7 +11,7 @@ interface IGroup {
 }
 
 export class ApiControllerCompiler implements IApiControllerCompiler {
-  constructor(protected logger: Logger, private controllerConstructor?: INewableConstructor<INewableApiController, IApiController>){
+  constructor(protected logger: Logger, private controllerConstructor?: INewableConstructor<any>){
   }
   private errors: string[] = [];
   protected onError(message: string){

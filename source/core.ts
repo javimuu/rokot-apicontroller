@@ -1,16 +1,17 @@
-export interface IApiRequestHandler<TBody, TResponse, TParams, TQuery, TOriginal>{
-  (req: IApiRequest<TBody, TResponse, TParams, TQuery, TOriginal>): void;
+export interface IApiRequestHandler<TBody, TResponse, TParams, TQuery, TNative>{
+  (req: IApiRequest<TBody, TResponse, TParams, TQuery, TNative>): void;
 }
 
-export interface IApiRequest<TBody, TResponse, TParams, TQuery, TOriginal>{
+export interface IApiRequest<TBody, TResponse, TParams, TQuery, TNative>{
   sendOk(response?:TResponse)
   sendCreated(response?:TResponse)
   sendNoContent()
   send(statusCode: number, response?: any)
   body: TBody
+  headers: {[key:string]: string}
   params: TParams
   query: TQuery
-  original: TOriginal
+  native: TNative
 }
 
 export interface IApi {
@@ -22,7 +23,7 @@ export interface IApiController {
   name: string;
   routes: IApiControllerRoute[];
   /** only available at runtime */
-  controllerClass?: INewableApiController;
+  controllerClass?: INewable<any>;
 }
 
 export interface INewable<T>{
@@ -32,13 +33,9 @@ export interface IMiddewareFunction {
   key:string
   func: Function
 }
-export interface INewableConstructor<TNew extends INewable<T>, T>{
-  (newable: TNew, name: string): T
-}
 
-export interface INewableApiController extends INewable<IApiController>{}
-
-export interface INewableApiControllerConstructor extends INewableConstructor<INewableApiController, IApiController>{
+export interface INewableConstructor<T>{
+  (newable: INewable<T>, name: string): T
 }
 
 export interface IApiControllerRoute {
@@ -47,6 +44,9 @@ export interface IApiControllerRoute {
   routeVerbs: IApiControllerRouteVerb[]
   middlewares?: string[]
   func: Function
+  validateBody?(item: any) : any
+  validateParams?(item: any) : any
+  validateQuery?(item: any) : any
 }
 
 export interface IApiControllerRouteVerb {

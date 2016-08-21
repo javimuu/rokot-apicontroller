@@ -67,7 +67,7 @@ middlewares.push({key: "four", func: (req: Express.Request, res: Express.Respons
 
 ```
 
-You can create your own request to customise the request object:
+You can optionally create your own request to customise the request object:
 
 ```typescript
 import {IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
@@ -87,17 +87,19 @@ export interface IRequest<TBody, TResponse, TParams, TQuery> extends IExpressApi
 export interface IGetRequest<TResponse, TParams, TQuery> extends IRequest<void, TResponse, TParams, TQuery>{
 }
 
-export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery> extends ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IRequest<TBody, TResponse, TParams, TQuery> {
+export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery>
+  extends ExpressApiRequest<TBody, TResponse, TParams, TQuery>
+  implements IRequest<TBody, TResponse, TParams, TQuery> {
   user: IUser
-  constructor(orig: IExpressRequest){
-    super(orig)
-    this.user = orig.req.user;
+  constructor(native: IExpressRequest){
+    super(native)
+    this.user = native.req.user;
   }
   isAuthenticated(): boolean{
-    return this.original.req.isAuthenticated()
+    return this.native.req.isAuthenticated()
   }
   isUnauthenticated(): boolean{
-    return this.original.req.isUnauthenticated()
+    return this.native.req.isUnauthenticated()
   }
 }
 
@@ -153,6 +155,7 @@ class MiddlewareController {
 ```
 
 To build your routes you can now
+
 ```typescript
 import {CustomExpressRouteBuilder} from "./expressRequest"; // from file above
 import {apiControllers, middlewares} from "rokot-apicontroller";
@@ -176,11 +179,11 @@ app.listen(this.port, () => {
 ```
 
 ### Notes
-The route methods should be instance members, and have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery,TOriginal>`
+The route methods should be instance members, and have a single param `req` of type `IApiRequest<TBody,TResponse,TParams,TQuery,TNative>`
 It strongly types all aspects of the request to make consuming them simpler within the route
 
 
-There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TOriginal` with `{ req: express.Request, res: express.Response }`
+There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TNative` with `{ req: express.Request, res: express.Response, next: express.NextFunction }`
 
 The `@api.include` decorator allows you to specify a controller name, path prefix, and optionally the middleware keys to apply to all the controller contained routes.
 

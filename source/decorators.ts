@@ -1,4 +1,4 @@
-import {INewableApiController, IApiController,IApiControllerRoute, IMiddewareFunction} from "./core";
+import {IApiController,IApiControllerRoute, IMiddewareFunction,INewable} from "./core";
 import 'reflect-metadata';
 import {DecoratorStore, IPropertyMetadata} from "./decoration";
 import {Shared} from "./shared";
@@ -12,6 +12,10 @@ interface IApiRouteMiddleware {
   keys: string[]
 }
 
+interface IApiValidator {
+  validate<T>(item: T) : T
+}
+
 interface IApiRouteVerb {
   verbs: HttpVerb[]
 }
@@ -20,13 +24,16 @@ interface IApiItemDecoration extends IPropertyMetadata {
   route?: IApiRoute
   middleware?: IApiRouteMiddleware
   verb?: IApiRouteVerb
+  bodyValidator?: IApiValidator
+  queryValidator?: IApiValidator
+  paramsValidator?: IApiValidator
 }
 
 interface IApiDecoration {
   name: string
   routePrefix?: string
   middlewares?: string[]
-  controllerClass: INewableApiController;
+  controllerClass: INewable<IApiController>;
   items?: IApiItemDecoration[]
 }
 
@@ -53,9 +60,6 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
   const name = Shared.makeRouteName(api.name, apiItem.propertyName);
   const route = Shared.makeRoute(api.routePrefix, memberRoute);
   const routeVerbs = Shared.makeRouteVerbs(acceptVerbs, route);
-  // routeVerbs.forEach(rv => {
-  //   this.logger.trace(`-- (${rv.verb}: ${rv.route})`)
-  // })
   let middlewares: string[];
   if (api.middlewares) {
     if (middlewareKeys) {
@@ -71,7 +75,10 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
     memberName: apiItem.propertyName,
     routeVerbs,
     middlewares,
-    func: apiItem.route.func
+    func: apiItem.route.func,
+    validateBody: apiItem.bodyValidator && apiItem.bodyValidator.validate,
+    validateParams: apiItem.paramsValidator && apiItem.paramsValidator.validate,
+    validateQuery: apiItem.queryValidator && apiItem.queryValidator.validate,
   };
 }
 
@@ -85,7 +92,7 @@ export class Api{
   include(name: string, routePrefix?: string, middlewares?: string[]) {
     return apiDecorators.fromClass(name, (t) => {
       return {name, middlewares, routePrefix, controllerClass:t as any}
-    }, makeApiController, ["route", "middleware", "verb"])
+    }, makeApiController, ["route", "middleware", "verb", "bodyValidator", "queryValidator", "paramsValidator"])
   }
 
   route(path?: string) {
@@ -99,6 +106,22 @@ export class Api{
   acceptVerbs(...verbs: HttpVerb[]) {
     return apiDecorators.propCollect<IApiRouteVerb>("verb", (t, propertyName, type) => ({propertyName, verbs}))
   }
+
+  bodyValidator<T>(validate: (item: T) => T) {
+    return this.validator<T>(validate, "bodyValidator")
+  }
+
+  queryValidator<T>(validate: (item: T) => T) {
+    return this.validator<T>(validate, "queryValidator")
+  }
+
+  paramsValidator<T>(validate: (item: T) => T) {
+    return this.validator<T>(validate, "paramsValidator")
+  }
+
+  private validator<T>(validate: (item: T) => T, itemType: string) {
+    return apiDecorators.propCollect<IApiValidator>(itemType, (t, propertyName, type) => ({propertyName, validate}))
+  }
 }
 
 
@@ -106,88 +129,3 @@ export const api = new Api()
 // NOTE: Its important to keep AllowedHttpVerbs and HttpVerbs in sync
 export const AllowedHttpVerbs = ["options", "get", "head", "post", "put", "delete", "patch"]
 export type HttpVerb = "options" | "get" | "head" | "post" | "put" | "delete" | "patch"
-//export type MetadataKeyType = string | number | symbol;
-// export class MetadataKeys {
-//   static controller = "controller"
-//   static routePrefix = "routePrefix"
-//   static middlewareKeys = "middlewareKeys"
-//   static middleware = "middleware"
-//   static acceptVerbs = "acceptVerbs"
-//   static route = "route"
-// }
-//
-// export interface IRegistry<TValue> {
-//   register(name: string, value: TValue): void;
-//   toValueArray(): TValue[];
-//   asDictionary():{ [key: string]: TValue };
-//   getKeyValueArray():{ key: string, value: TValue }[]
-// }
-//
-// class Registry<TValue> implements IRegistry<TValue> {
-//   private dictionary: { [key: string]: TValue } = {}
-//   asDictionary(){
-//     return this.dictionary;
-//   }
-//   register(key: string, value: TValue){
-//     this.dictionary[key] = value;
-//   }
-//   toValueArray(): TValue[] {
-//     var controllers: TValue[] = [];
-//     for (var key in this.dictionary) {
-//       controllers.push(this.dictionary[key])
-//     }
-//
-//     return controllers;
-//   }
-//   getKeyValueArray(): {key: string, value: TValue}[] {
-//     var controllers: { key: string, value: TValue }[] = [];
-//     for (var key in this.dictionary) {
-//       controllers.push({ key, value: this.dictionary[key] })
-//     }
-//     return controllers;
-//   }
-// }
-//
-// export const controllerRegistry: IRegistry<INewableApiController> = new Registry<INewableApiController>()
-// export const middlewareRegistry: IRegistry<Function> = new Registry<Function>()
-//
-// export function controller(name: string,middlewares?: string[]): ClassDecorator {
-//   return function(target: Function) {
-//     controllerRegistry.register(name, target as INewableApiController);
-//     Reflect.defineMetadata(MetadataKeys.controller, name, target);
-//     if (middlewares && middlewares.length) {
-//       Reflect.defineMetadata(MetadataKeys.middlewareKeys, middlewares, target);
-//     }
-//   }
-// }
-//
-// export function routePrefix(path: string): ClassDecorator {
-//   return function(target: Function) {
-//     Reflect.defineMetadata(MetadataKeys.routePrefix, path, target);
-//   }
-// }
-//
-// export function middleware(key: string) {
-//   return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
-//     middlewareRegistry.register(key, target[methodName]);
-//     Reflect.defineMetadata(MetadataKeys.middleware, key, target, methodName);
-//   }
-// }
-//
-// export function middlewareKeys(...middlewares: string[]) {
-//   return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
-//     Reflect.defineMetadata(MetadataKeys.middlewareKeys, middlewares, target, methodName);
-//   }
-// }
-//
-// export function acceptVerbs(...verbs: HttpVerb[]) {
-//   return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
-//     Reflect.defineMetadata(MetadataKeys.acceptVerbs, verbs, target, methodName);
-//   }
-// }
-//
-// export function route(path: string) {
-//   return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
-//     Reflect.defineMetadata(MetadataKeys.route, path, target, methodName);
-//   };
-// }

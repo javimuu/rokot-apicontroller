@@ -1,6 +1,6 @@
 import * as _ from "underscore";
 import {AllowedHttpVerbs} from "./decorators";
-import {INewable, IApiController, IApiControllerRoute, INewableApiController, INewableConstructor} from "./core";
+import {INewable, IApiController, IApiControllerRoute, INewableConstructor} from "./core";
 
 // export class ApiControllerVisitor{
 //   private static array(type: IApiType, value: string){
@@ -157,7 +157,7 @@ export class ApiControllerExplorer{
 }
 
 export class Shared {
-  static construct<TNew extends INewable<T>, T>(controllerClass: TNew, controllerName: string, controllerConstructor: INewableConstructor<TNew, T>): T {
+  static construct<T>(controllerClass: INewable<T>, controllerName: string, controllerConstructor: INewableConstructor<T>): T {
     return controllerConstructor ? controllerConstructor(controllerClass, controllerName) : new controllerClass();
   }
 
