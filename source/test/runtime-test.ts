@@ -1,110 +1,134 @@
 import {expect,sinon,supertest,chai} from "rokot-test";
-import {ApiControllerCompiler} from "../apiControllerCompiler";
+import {ApiBuilder} from "../server/apiBuilder";
 import * as _ from "underscore";
 import * as fs from "fs";
 import {ConsoleLogger,Logger} from "rokot-log";
 import {RouteBuilder} from "../routeBuilder";
-import {MiddlewareProvider} from "../middlewareProvider";
-import {api,apiControllers,middlewares} from "../decorators";
-import {IMiddewareFunction, IApiControllerCompiler,IApiControllerRoute, IApiRequestHandler, IApiControllerRouteVerb, IApiController, IApi} from "../core";
+import {api,apiControllers,middlewareFunctions} from "../decorators";
+import {IMiddewareFunction,MiddewareFunctionDictionary, IApiBuilder,IApiControllerRoute, IApiRequestHandler, IApiController, IApi} from "../core";
 import "./testControllers";
+import "./testInvalidControllers";
 import "./testMiddleware";
 
 describe("middlewares", () => {
-  it("should find 4 middlewares", () => {
-    expect(middlewares.length).to.eq(4, middlewares.map(m => m.key).join(","))
-
-    expect(middlewares.filter(m => !!m.func).length).to.eq(4, "Should have a function on each middleware")
+  it("should find 6 middlewares", () => {
+    const keys = _.keys(middlewareFunctions);
+    const values = _.values(middlewareFunctions);
+    expect(keys.length).to.eq(6, keys.join(","))
+    expect(values.filter(m => !!m.func).length).to.eq(6, "Should have a function on each middleware")
   })
 })
 describe("ApiControllerCompiler", () => {
-  it("should find 2 routes on 'noVerbs' controller", () => {
+  it("should find 2 routes on 'NoVerbsRouteController' controller", () => {
     const logger = ConsoleLogger.create("test",{level:"info"});
-    const simpleOnly = apiControllers.filter(a => a.name === "noVerbs")
-    const mws = []
-    const reflectCompiler = new ApiControllerCompiler(logger)
-    const api = reflectCompiler.compile(simpleOnly,mws)
-    //var api = compile("out/reflected.json", reflectCompiler)
+    const simpleOnly = apiControllers.filter(a => a.name === "NoVerbsRouteController")
+    const mws:MiddewareFunctionDictionary = {}
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(simpleOnly,mws)
+    //var api = compile("out/reflected.json", controllerCompiler)
     expect(api.errors.length).to.eq(0, `Should get no errors`)
     expect(api.controllers.length).to.eq(1, `Should get 1 controller`)
     expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
     expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
-    expect(api.controllers[0].routes[0].name).to.eq("noVerbs_get", `1st route should be 'get'`)
-    expect(api.controllers[0].routes[0].routeVerbs.length).to.eq(1, `1st route should have 1 verb`)
-    expect(api.controllers[0].routes[0].routeVerbs[0].verb).to.eq("get", `1st route should have get verb`)
-    expect(api.controllers[0].routes[1].name).to.eq("noVerbs_post", `2nd route should be 'get'`)
-    expect(api.controllers[0].routes[1].routeVerbs.length).to.eq(1, `2nd route should have 1 verb`)
-    expect(api.controllers[0].routes[1].routeVerbs[0].verb).to.eq("post", `2nd route should have post verb`)
+    expect(api.controllers[0].routes[0].name).to.eq("NoVerbsRouteController_get", `1st route should be 'get'`)
+    expect(api.controllers[0].routes[0].verbs.length).to.eq(1, `1st route should have 1 verb`)
+    expect(api.controllers[0].routes[0].verbs[0]).to.eq("get", `1st route should have get verb`)
+    expect(api.controllers[0].routes[1].name).to.eq("NoVerbsRouteController_post", `2nd route should be 'get'`)
+    expect(api.controllers[0].routes[1].verbs.length).to.eq(1, `2nd route should have 1 verb`)
+    expect(api.controllers[0].routes[1].verbs[0]).to.eq("post", `2nd route should have post verb`)
 
-    var mw = new MiddlewareProvider(logger, mws)
-    var middleware = mw.get(simpleOnly);
-    expect(_.keys(middleware).length).to.eq(0, `Should have no middleware`)
-    for (var key in middleware) {
-      expect(_.isFunction(middleware[key])).to.be.true;
-    }
+    // const model = ApiControllerManager.createMiddlewareModel(simpleOnly,[])
+    // if (model) {
+    //}
+    // var mw = new MiddlewareProvider(logger, mws)
+    // var middleware = mw.get(simpleOnly);
+    // expect(_.keys(middleware).length).to.eq(0, `Should have no middleware`)
+    // for (var key in middleware) {
+    //   expect(_.isFunction(middleware[key])).to.be.true;
+    // }
   });
-  it("should find 2 routes on 'simple' controller", () => {
+  it("should find 2 routes on 'SimpleController' controller", () => {
     const logger = ConsoleLogger.create("test",{level:"info"});
-    const simpleOnly = apiControllers.filter(a => a.name === "simple")
-    const mws = []
-    const reflectCompiler = new ApiControllerCompiler(logger)
-    const api = reflectCompiler.compile(simpleOnly,mws)
-    //var api = compile("out/reflected.json", reflectCompiler)
+    const simpleOnly = apiControllers.filter(a => a.name === "SimpleController")
+    const mws:MiddewareFunctionDictionary = {}
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(simpleOnly,mws)
+    //var api = compile("out/reflected.json", controllerCompiler)
     expect(api.errors.length).to.eq(0, `Should get no errors`)
     expect(api.controllers.length).to.eq(1, `Should get 1 controller`)
     expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
     expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
-    expect(api.controllers[0].routes[0].name).to.eq("simple_get", `1st route should be 'get'`)
-    expect(api.controllers[0].routes[0].routeVerbs.length).to.eq(2, `1st route should have 2 verbs`)
-    expect(api.controllers[0].routes[0].routeVerbs[0].verb).to.eq("get", `1st route should have get verb`)
-    expect(api.controllers[0].routes[0].routeVerbs[1].verb).to.eq("options", `1st route should have get verb`)
-    expect(api.controllers[0].routes[1].name).to.eq("simple_getAll", `2nd route should be 'get'`)
-    expect(api.controllers[0].routes[1].routeVerbs.length).to.eq(1, `2nd route should have 1 verb`)
-    expect(api.controllers[0].routes[0].routeVerbs[0].verb).to.eq("get", `1st route should have get verb`)
+    expect(api.controllers[0].routes[0].name).to.eq("SimpleController_get", `1st route should be 'get'`)
+    expect(api.controllers[0].routes[0].verbs.length).to.eq(2, `1st route should have 2 verbs`)
+    expect(api.controllers[0].routes[0].verbs[0]).to.eq("get", `1st route should have get verb`)
+    expect(api.controllers[0].routes[0].verbs[1]).to.eq("options", `1st route should have get verb`)
+    expect(api.controllers[0].routes[1].name).to.eq("SimpleController_getAll", `2nd route should be 'get'`)
+    expect(api.controllers[0].routes[1].verbs.length).to.eq(1, `2nd route should have 1 verb`)
+    expect(api.controllers[0].routes[0].verbs[0]).to.eq("get", `1st route should have get verb`)
 
-    var mw = new MiddlewareProvider(logger, mws)
-    var middleware = mw.get(simpleOnly);
-    expect(_.keys(middleware).length).to.eq(0, `Should have no middleware`)
-    for (var key in middleware) {
-      expect(_.isFunction(middleware[key])).to.be.true;
-    }
+    // var mw = new MiddlewareProvider(logger, mws)
+    // var middleware = mw.get(simpleOnly);
+    // expect(_.keys(middleware).length).to.eq(0, `Should have no middleware`)
+    // for (var key in middleware) {
+    //   expect(_.isFunction(middleware[key])).to.be.true;
+    // }
   });
 
-  it("should find 2 routes on 'middleware' controller with metadata", () => {
+  it("should find 2 routes on 'MiddlewareController' controller with metadata", () => {
     const logger = ConsoleLogger.create("test",{level:"info"});
-    const middlewareOnly = apiControllers.filter(a => a.name === "middleware")
-    const reflectCompiler = new ApiControllerCompiler(logger)
-    const api = reflectCompiler.compile(middlewareOnly,middlewares.map(m => m.key))
-    //var api = compile("out/reflected.json", reflectCompiler)
+    const middlewareOnly = apiControllers.filter(a => a.name === "MiddlewareController")
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(middlewareOnly,middlewareFunctions)
+    //var api = compile("out/reflected.json", controllerCompiler)
     expect(api.errors.length).to.eq(0, `Should get no errors`)
     expect(api.controllers.length).to.eq(1, `Should get 1 controller`)
     expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
     expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
-    expect(api.controllers[0].routes[0].name).to.eq("middleware_get", `1st route should be 'get'`)
-    expect(api.controllers[0].routes[0].middlewares.length).to.eq(3, `1st route should have 3 middleware`)
-    expect(api.controllers[0].routes[1].name).to.eq("middleware_getAll", `2nd route should be 'get'`)
-    expect(api.controllers[0].routes[1].middlewares.length).to.eq(2, `2nd route should have 2 middleware`)
+    expect(api.controllers[0].routes[0].name).to.eq("MiddlewareController_get", `1st route should be 'get'`)
+    expect(api.controllers[0].routes[0].middlewares.length).to.eq(4, `1st route should have 4 middleware`)
+    expect(api.controllers[0].routes[1].name).to.eq("MiddlewareController_getAll", `2nd route should be 'get'`)
+    expect(api.controllers[0].routes[1].middlewares.length).to.eq(4, `2nd route should have 4 middleware`)
 
-    var mw = new MiddlewareProvider(logger, middlewares)
-    var middleware = mw.get(middlewareOnly);
-    expect(_.keys(middleware).length).to.eq(3, `Should have 3 middleware`)
+    // var mw = new MiddlewareProvider(logger, middlewares)
+    // var middleware = mw.get(middlewareOnly);
+    // expect(_.keys(middleware).length).to.eq(3, `Should have 3 middleware`)
   });
 
-  it("should fail on 'simple' and 'simpleClash' routes - two clashes (1 route with 2 verbs)", () => {
+  it("should find 2 route errors on 'MiddlewareFailureController' controller with metadata", () => {
     const logger = ConsoleLogger.create("test",{level:"info"});
-    const simpleAndClashOnly = apiControllers.filter(a => a.name === "simple" || a.name === "simpleClash")
-    const reflectCompiler = new ApiControllerCompiler(logger)
-    const api = reflectCompiler.compile(simpleAndClashOnly,[""])
-    //var api = compile("out/reflected.json", reflectCompiler)
+    const middlewareOnly = apiControllers.filter(a => a.name === "MiddlewareFailureController")
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(middlewareOnly,middlewareFunctions)
+    //var api = compile("out/reflected.json", controllerCompiler)
+    expect(api.errors.length).to.eq(2, `Should get 2 errors ${api.errors.join(":")}`)
+    // expect(api.controllers.length).to.eq(1, `Should get 1 controller`)
+    // expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
+    // expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
+    // expect(api.controllers[0].routes[0].name).to.eq("middleware_get", `1st route should be 'get'`)
+    // expect(api.controllers[0].routes[0].middlewares.length).to.eq(3, `1st route should have 3 middleware`)
+    // expect(api.controllers[0].routes[1].name).to.eq("middleware_getAll", `2nd route should be 'get'`)
+    // expect(api.controllers[0].routes[1].middlewares.length).to.eq(4, `2nd route should have 4 middleware`)
+
+    // var mw = new MiddlewareProvider(logger, middlewares)
+    // var middleware = mw.get(middlewareOnly);
+    // expect(_.keys(middleware).length).to.eq(3, `Should have 3 middleware`)
+  });
+
+  it("should fail on 'SimpleController' and 'SimpleRouteClashController' routes - two clashes (1 route with 2 verbs)", () => {
+    const logger = ConsoleLogger.create("test",{level:"info"});
+    const simpleAndClashOnly = apiControllers.filter(a => a.name === "SimpleController" || a.name === "SimpleRouteClashController")
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(simpleAndClashOnly,{})
+    //var api = compile("out/reflected.json", controllerCompiler)
     expect(api.errors.length).to.eq(2, `Should get 2 errors`)
     //console.log(api.errors)
   });
-  it("should fail on 'missingMiddleware' route - 1 missing middleware", () => {
+  it("should fail on 'MissingMiddlewareController' route - 1 missing middleware", () => {
     const logger = ConsoleLogger.create("test",{level:"info"});
-    const missingMiddlewareOnly = apiControllers.filter(a => a.name === "missingMiddleware")
-    const reflectCompiler = new ApiControllerCompiler(logger)
-    const api = reflectCompiler.compile(missingMiddlewareOnly,middlewares.map(m => m.key))
-    //var api = compile("out/reflected.json", reflectCompiler)
+    const missingMiddlewareOnly = apiControllers.filter(a => a.name === "MissingMiddlewareController")
+    const controllerCompiler = new ApiBuilder(logger)
+    const api = controllerCompiler.build(missingMiddlewareOnly,middlewareFunctions)
+    //var api = compile("out/reflected.json", controllerCompiler)
     expect(api.errors.length).to.eq(1, `Should get 1 errors`)
     //console.log(api.errors)
   });
@@ -113,14 +137,14 @@ describe("ApiControllerCompiler", () => {
 // describe("Route Builder test", () => {
 //   it("should build routes from the Api", () => {
 //     const logger = ConsoleLogger.create("test",{level:"info"});
-//     const reflectCompiler = new RuntimeControllerMetadataCompiler(apiControllers,middlewares,logger)
-//     var api = compile("out/reflected.json", reflectCompiler)
+//     const controllerCompiler = new RuntimeControllerMetadataCompiler(apiControllers,middlewares,logger)
+//     var api = compile("out/reflected.json", controllerCompiler)
 //     var builder = new TestRouteBuilder(logger);
 //     var ok = builder.build(api);
 //     expect(ok).to.be.true;
 //     var rC = 0;
 //     var rvC = 0;
-//     ApiControllerExplorer.forEachControllerRoute(api.controllers, (c,r) =>{
+//     ApiControllerManager.forEachControllerRoute(api.controllers, (c,r) =>{
 //       rC += 1;
 //       rvC += r.routeVerbs.length;
 //     })
@@ -135,8 +159,8 @@ describe("ApiControllerCompiler", () => {
 //
 //   it("'Runtime' should compile without failure or errors", () => {
 //     const logger = ConsoleLogger.create("test",{level:"info"});
-//     const reflectCompiler = new RuntimeControllerMetadataCompiler(apiControllers,middlewares,logger)
-//     reflected = compile("out/reflected.json", reflectCompiler, true)
+//     const controllerCompiler = new RuntimeControllerMetadataCompiler(apiControllers,middlewares,logger)
+//     reflected = compile("out/reflected.json", controllerCompiler, true)
 //     expect(reflected.errors.length).to.eq(0, `Runtime Compiler should not get errors`)
 //   });
 //
@@ -146,7 +170,7 @@ describe("ApiControllerCompiler", () => {
 //
 //   // it("'Runtime' should not have type information", () => {
 //   //   expect(reflected.referenceTypes).to.be.undefined
-//   //   var rts = ApiControllerExplorer.gatherRouteTypes(reflected.controllers);
+//   //   var rts = ApiControllerManager.gatherRouteTypes(reflected.controllers);
 //   //   expect(rts.length).to.be.eq(0, "Controllers should have no types")
 //   // });
 // })

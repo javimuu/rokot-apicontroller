@@ -71,7 +71,7 @@ export class DecoratorStore<T> {
     return Reflect.getMetadata(this.metadataKey, target);
   }
 
-  propCollect<P>(metadataKey: string, data: (target: Function, methodName: string, type: any, descriptor?: PropertyDescriptor) => P & IPropertyMetadata): PropertyDecorator {
+  memberCollect<P>(metadataKey: string, data: (target: Function, methodName: string, type: any, descriptor?: PropertyDescriptor) => P & IPropertyMetadata): PropertyDecorator {
     return (target: any, methodName: string, descriptor?: PropertyDescriptor) => {
       const type = Reflect.getMetadata('design:type', target, methodName)
       this.addArrayItem(this.makePropKey(metadataKey), target, data(target, methodName, type, descriptor))

@@ -56,14 +56,14 @@ class Middleware {
 }
 ```
 
-You can optionally register the middleware directly via the `middlewares` registry
+You can optionally register the middleware directly via the `registerMiddlewareFunction` method
 ```typescript
-import {middlewares} from "rokot-apicontroller";
+import {registerMiddlewareFunction} from "rokot-apicontroller";
 
-middlewares.push({key: "four", func: (req: Express.Request, res: Express.Response, next: () => void) => {
+registerMiddlewareFunction("four", (req: Express.Request, res: Express.Response, next: () => void) => {
   console.log("four")
   next();
-}})
+})
 
 ```
 
@@ -93,13 +93,13 @@ export class CustomExpressApiRequest<TBody, TResponse, TParams, TQuery>
   user: IUser
   constructor(native: IExpressRequest){
     super(native)
-    this.user = native.req.user;
+    this.user = native.request.user;
   }
   isAuthenticated(): boolean{
-    return this.native.req.isAuthenticated()
+    return this.native.request.isAuthenticated()
   }
   isUnauthenticated(): boolean{
-    return this.native.req.isUnauthenticated()
+    return this.native.request.isUnauthenticated()
   }
 }
 
@@ -114,7 +114,7 @@ You can then specify controllers and their routes:
 
 ```typescript
 import {api, IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
-import {IRequest, IVoidRequest, IUser} from "./expressRequest"; // from file above
+import {IRequest, IGetRequest, IUser} from "./expressRequest"; // from file above
 import * as express from "express";
 
 
@@ -129,13 +129,13 @@ class MiddlewareController {
   @api.route(":id")
   @api.acceptVerbs("get", "options")
   @api.middleware("three")
-  get(req: IVoidRequest<IGroup,{id: string},void>) {
+  get(req: IGetRequest<IGroup,{id: string},void>) {
     req.sendOk({id: req.params.id, name:"group", members:[{id:"1", name: "User 1"}]});
   }
 
   @api.route()
   @api.acceptVerbs("get", "options")
-  getAll(req: IVoidRequest<IGroup[],void,void>) {
+  getAll(req: IGetRequest<IGroup[],void,void>) {
     req.sendOk([
       {id: "1", name:"group", members:[{id:"1", name: "User 1"}]}
     ]);
@@ -147,7 +147,7 @@ class MiddlewareController {
   }
 
   @api.route(":id")
-  delete(req: IVoidRequest<void,{id: string},void>) {
+  delete(req: IGetRequest<void,{id: string},void>) {
     var id = req.params.id;
     req.sendNoContent()
   }
@@ -158,14 +158,14 @@ To build your routes you can now
 
 ```typescript
 import {CustomExpressRouteBuilder} from "./expressRequest"; // from file above
-import {apiControllers, middlewares} from "rokot-apicontroller";
+import {apiControllers, middlewareFunctions} from "rokot-apicontroller";
 import {ConsoleLogger} from "rokot-log";
 import * as express from 'express';
 
 const app = express();
 const logger = ConsoleLogger.create("Api Routes", {level: "trace"});
 
-const builder = new CustomExpressRouteBuilder(logger, app, apiControllers, middlewares);
+const builder = new CustomExpressRouteBuilder(logger, app, apiControllers, middlewareFunctions);
 const api = builder.build();
 if (!api || api.errors.length) {
   console.log("Unable to build express routes - Service stopping!")
@@ -173,7 +173,7 @@ if (!api || api.errors.length) {
 }
 
 app.listen(this.port, () => {
-  console.log(`Cosmos listening on port ${this.port}!`);
+  console.log(`Server listening on port ${this.port}!`);
 });
 
 ```

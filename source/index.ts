@@ -1,4 +1,8 @@
-export {ApiControllerCompiler} from "./apiControllerCompiler";
-export {apiControllers,api,middlewares,AllowedHttpVerbs,HttpVerb} from "./decorators";
-export {ExpressRouteBuilder,IExpressRequest,IExpressApiRequest,ExpressApiRequest} from "./expressRouteBuilder";
-export {IApi,IApiRequest,IRouteBuilder,IApiController,IApiRequestHandler,IApiControllerRoute,IApiControllerCompiler,IApiControllerRouteVerb,INewable,INewableConstructor,IMiddewareFunction} from "./core";
+export {ApiBuilder} from "./server/apiBuilder";
+export {ApiClientBuilder,IApiClient,IApiClientRoute,IApiClientController} from "./client/apiClientBuilder"
+export {FileStreamWriter} from "./fileStreamWriter";
+export {apiControllers,api,middlewareFunctions,registerMiddlewareFunction,registerMiddlewareProvider,AllowedHttpVerbs,HttpVerb} from "./decorators";
+export {IApi,IApiRequest,IRouteBuilder,IApiController,IApiRequestHandler,IApiControllerRoute,IApiBuilder,INewable,INewableConstructor,IMiddewareFunction} from "./core";
+
+export {ExpressRouteBuilder,IExpressRequest,IExpressApiRequest,ExpressApiRequest} from "./express/routeBuilder";
+import {expressClientWriter} from "./express/clientWriter";

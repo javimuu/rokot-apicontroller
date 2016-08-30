@@ -1,9 +1,9 @@
-import {api, middlewares} from "../decorators";
+import {api,registerMiddlewareFunction} from "../decorators";
 
-middlewares.push({key: "four", func: (req: Express.Request, res: Express.Response, next: () => void) => {
+registerMiddlewareFunction("four", (req: Express.Request, res: Express.Response, next: () => void) => {
   console.log("four")
   next();
-}})
+})
 
 class Middleware {
   @api.middlewareFunction("one")
@@ -22,5 +22,22 @@ class Middleware {
   three(req: Express.Request, res: Express.Response, next: () => void) {
     console.log("three")
     next();
+  }
+
+  @api.middlewareProviderFunction("logger", 1)
+  static logger(log:string){
+    return (req: Express.Request, res: Express.Response, next: () => void) => {
+      console.log(log, req)
+      next();
+    }
+  }
+
+
+  @api.middlewareProviderFunction("simplelogger",0, 1)
+  static simplelogger(log?:string){
+    return (req: Express.Request, res: Express.Response, next: () => void) => {
+      console.log(log || "Unknown", req)
+      next();
+    }
   }
 }

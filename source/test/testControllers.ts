@@ -1,46 +1,44 @@
 import {api} from "../decorators";
-import {IExpressApiRequest} from "../expressRouteBuilder";
+import {IExpressApiRequest} from "../express/routeBuilder";
 
 export type IRequest<TBody, TResponse, TParams, TQuery> = IExpressApiRequest<TBody, TResponse, TParams, TQuery>
-export type IVoidRequest<TResponse, TParams, TQuery> = IExpressApiRequest<void, TResponse, TParams, TQuery>
+export type IGetRequest<TResponse, TParams, TQuery> = IExpressApiRequest<void, TResponse, TParams, TQuery>
 
-@api.include("middleware", "/middleware", ["one", "two"])
+export interface ISimpleResponse {
+  name: string
+}
+
+interface IComplexResponse {
+  age: number
+  extra: IExtra[]
+}
+
+interface IExtra {
+
+}
+
+@api.include("MiddlewareController", "/middleware", ["one", "two"])
 class MiddlewareController {
   @api.route(":id")
   @api.acceptVerbs("get", "options")
-  @api.middleware("three")
-  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+  @api.middleware("three", "simplelogger")
+  get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
-  @api.route()
+  @api.route(":key/:subKey?")
   @api.acceptVerbs("get", "options")
-  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
+  @api.middleware("three", {key: "logger", params:["getAll!!"]})
+  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,{key: string, subKey?:string},IExtra>) {
     req.send(200,null)
   }
 }
 
-@api.include("missingMiddleware", "/missingMiddleware", ["one", "two"])
-class MissingMiddlewareController {
-  @api.route(":id")
-  @api.acceptVerbs("get", "options")
-  @api.middleware("five")
-  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
-    req.sendOk(null)
-  }
-
-  @api.route()
-  @api.acceptVerbs("get", "options")
-  getAll(req: IVoidRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
-    req.sendOk(null)
-  }
-}
-
-@api.include("simple", "/simple")
+@api.include("SimpleController", "/simple")
 class SimpleController {
   @api.route(":id")
   @api.acceptVerbs("get", "options")
-  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+  get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
@@ -51,30 +49,15 @@ class SimpleController {
   }
 }
 
-@api.include("simpleClash")
-class SimpleRouteClashController {
-  @api.route("simple/:id")
-  @api.acceptVerbs("get", "options")
-  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
-    req.send(200,null)
-  }
-
-  @api.route()
-  @api.acceptVerbs("get", "options")
-  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
-    req.send(200,null)
-  }
-}
-
-@api.include("noVerbs")
+@api.include("NoVerbsRouteController")
 class NoVerbsRouteController {
-  @api.route()
-  get(req: IVoidRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+  @api.route("/:id")
+  get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},void>) {
     req.send(200,null)
   }
 
   @api.route()
-  post(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
+  post(req: IRequest<void,ISimpleResponse|IComplexResponse,void,void>) {
     req.send(200,null)
   }
 }

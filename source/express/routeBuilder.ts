@@ -1,13 +1,13 @@
 import * as express from 'express';
-import {Shared} from "./shared";
-import {RouteBuilder} from "./routeBuilder";
+import {Shared} from "../shared";
+import {RouteBuilder} from "../routeBuilder";
 import {Logger} from "bunyan";
-import {IApiRequest, IApiController,IMiddewareFunction,INewableConstructor,INewable, IApiRequestHandler, IApiControllerRoute, IApiControllerRouteVerb} from "./core";
+import {IApiRequest,MiddewareFunctionDictionary, IStringDictionary, IApiController,IMiddewareFunction,INewableConstructor,INewable, IApiRequestHandler, IApiControllerRoute} from "../core";
 import * as _ from "underscore";
 
 export interface IExpressRequest {
-  req: express.Request
-  res: express.Response
+  request: express.Request
+  response: express.Response
   next: express.NextFunction
 }
 
@@ -15,10 +15,10 @@ export type IExpressApiRequest<TBody, TResponse, TParams, TQuery> = IApiRequest<
 
 export class ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IExpressApiRequest<TBody, TResponse, TParams, TQuery>{
   constructor(public native: IExpressRequest){
-    this.body = native.req.body
-    this.params = native.req.params
-    this.query = native.req.query
-    this.headers = native.req.headers
+    this.body = native.request.body
+    this.params = native.request.params
+    this.query = native.request.query
+    this.headers = native.request.headers
   }
 
   sendOk(response?:TResponse){
@@ -34,33 +34,25 @@ export class ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IEx
   }
 
   send(statusCode: number, response?:any){
-    this.native.res.status(statusCode).send(response)
+    this.native.response.status(statusCode).send(response)
   }
 
-  headers: {[key:string]: string}
+  headers: IStringDictionary<string>
   body: TBody
   params: TParams
   query: TQuery
 }
 
 export class ExpressRouteBuilder extends RouteBuilder {
-  constructor(logger: Logger, private server: express.Express, apiControllers: IApiController[], middlewares: IMiddewareFunction[], controllerConstructor?: INewableConstructor<any>) {
-    super(logger, apiControllers, middlewares, controllerConstructor)
+  constructor(logger: Logger, private server: express.Express, apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary, controllerConstructor?: INewableConstructor<any>) {
+    super(logger, apiControllers, middlewareFunctions, controllerConstructor)
   }
 
   protected createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any, any>) : express.RequestHandler {
-    return (req: express.Request, res: express.Response, next: express.NextFunction) => {
-      routeHandler(this.createHandler({req,res, next}));
+    return (request: express.Request, response: express.Response, next: express.NextFunction) => {
+      routeHandler(this.createHandler({request,response,next}));
     }
   }
-
-  protected validateRequestInput(req: express.Request, part: "body" | "params" | "query", validate: (item: any) => any){
-    if (!validate) {
-      return;
-    }
-    req[part] = validate(req[part])
-  }
-
 
   protected createValidatorMiddleware(route: IApiControllerRoute): express.RequestHandler{
     if (!route.validateBody && !route.validateParams && !route.validateQuery) {
@@ -68,9 +60,7 @@ export class ExpressRouteBuilder extends RouteBuilder {
     }
     return (req: express.Request, res: express.Response, next: express.NextFunction) => {
       try{
-        this.validateRequestInput(req, "body", route.validateBody)
-        this.validateRequestInput(req, "params", route.validateParams)
-        this.validateRequestInput(req, "query", route.validateQuery)
+        this.enforceRequestInputValidation(req, route, "body", "params", "query")
         next()
       } catch(e) {
         next(e)
@@ -82,8 +72,8 @@ export class ExpressRouteBuilder extends RouteBuilder {
     return new ExpressApiRequest<any, any, any, any>(req)
   }
 
-  protected setupRoute(route: IApiControllerRoute, routeVerb: IApiControllerRouteVerb, requestHandlers: express.RequestHandler[]){
-    this.server[routeVerb.verb](routeVerb.route, ...requestHandlers);
+  protected setupRoute(route: IApiControllerRoute, verb: string, requestHandlers: express.RequestHandler[]){
+    this.server[verb](route.route, ...requestHandlers);
   }
 
   protected invokeRouteFunction(func: Function, instance: any, handler: ExpressApiRequest<any, any, any, any>){

@@ -8,7 +8,7 @@ export interface IApiRequest<TBody, TResponse, TParams, TQuery, TNative>{
   sendNoContent()
   send(statusCode: number, response?: any)
   body: TBody
-  headers: {[key:string]: string}
+  headers: IStringDictionary<string>
   params: TParams
   query: TQuery
   native: TNative
@@ -22,16 +22,35 @@ export interface IApi {
 export interface IApiController {
   name: string;
   routes: IApiControllerRoute[];
-  /** only available at runtime */
   controllerClass?: INewable<any>;
 }
 
 export interface INewable<T>{
   new(...args:any[]): T
 }
+
+export interface IStringDictionary<T>{
+  [key: string]: T
+}
+
 export interface IMiddewareFunction {
   key:string
   func: Function
+  paramMin?: number
+  paramMax?: number
+}
+
+// export interface IMiddewareFunctionProvider {
+//   key:string
+//   funcProvider: (...args) => Function
+// }
+
+export type MiddewareProviderType = string | IMiddewareProvider
+export type MiddewareFunctionDictionary = IStringDictionary<IMiddewareFunction>
+
+export interface IMiddewareProvider {
+  key:string
+  params: any[]
 }
 
 export interface INewableConstructor<T>{
@@ -41,21 +60,22 @@ export interface INewableConstructor<T>{
 export interface IApiControllerRoute {
   name: string
   memberName: string
-  routeVerbs: IApiControllerRouteVerb[]
-  middlewares?: string[]
+  route: string
+  verbs: string[]
+  middlewares?: MiddewareProviderType[]
   func: Function
   validateBody?(item: any) : any
   validateParams?(item: any) : any
   validateQuery?(item: any) : any
 }
 
-export interface IApiControllerRouteVerb {
-  route: string;
-  verb: string
-}
+// export interface IApiControllerRouteVerb {
+//   route: string;
+//   verb: string
+// }
 
-export interface IApiControllerCompiler{
-  compile(apiControllers: IApiController[], middlewareKeys: string[]): IApi
+export interface IApiBuilder{
+  build(apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary): IApi
 }
 
 export interface IRouteBuilder {

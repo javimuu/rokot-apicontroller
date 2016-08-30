@@ -12,6 +12,7 @@
     "express-serve-static-core": "registry:dt/express-serve-static-core#4.0.0+20160819131900",
     "mime": "registry:dt/mime#0.0.0+20160316155526",
     "node": "registry:dt/node#6.0.0+20160818175514",
+    "path-to-regexp": "registry:dt/path-to-regexp#1.0.3+20160317120654",
     "serve-static": "registry:dt/serve-static#0.0.0+20160606155157",
     "underscore": "registry:dt/underscore#1.7.0+20160805164035"
   },

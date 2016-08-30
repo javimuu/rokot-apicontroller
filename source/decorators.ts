@@ -1,4 +1,4 @@
-import {IApiController,IApiControllerRoute, IMiddewareFunction,INewable} from "./core";
+import {IApiController,IApiControllerRoute, IMiddewareFunction,INewable,MiddewareProviderType,IMiddewareProvider, MiddewareFunctionDictionary} from "./core";
 import 'reflect-metadata';
 import {DecoratorStore, IPropertyMetadata} from "./decoration";
 import {Shared} from "./shared";
@@ -9,7 +9,7 @@ interface IApiRoute {
 }
 
 interface IApiRouteMiddleware {
-  keys: string[]
+  keys: MiddewareProviderType[]
 }
 
 interface IApiValidator<T> {
@@ -36,7 +36,7 @@ interface IApiItemDecoration extends IPropertyMetadata {
 interface IApiDecoration {
   name: string
   routePrefix?: string
-  middlewares?: string[]
+  middlewares?: MiddewareProviderType[]
   controllerClass: INewable<IApiController>;
   items?: IApiItemDecoration[]
 }
@@ -44,7 +44,15 @@ interface IApiDecoration {
 const apiDecorators = new DecoratorStore<IApiDecoration>("controller")
 
 export const apiControllers: IApiController[] = []
-export const middlewares: IMiddewareFunction[] = []
+export const middlewareFunctions: MiddewareFunctionDictionary = {}
+
+export function registerMiddlewareFunction(key: string, func: Function) {
+  middlewareFunctions[key] = {key, func}
+}
+
+export function registerMiddlewareProvider(key: string, func: Function, paramMin: number, paramMax = paramMin) {
+  middlewareFunctions[key] = {key, func,paramMin,paramMax}
+}
 
 function makeApiController(decorator: IApiDecoration): IApiController {
   const c = {
@@ -63,11 +71,11 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
   const acceptVerbs = apiItem.verb ? apiItem.verb.verbs : Shared.defaultVerbs(apiItem.propertyName)
   const name = Shared.makeRouteName(api.name, apiItem.propertyName);
   const route = Shared.makeRoute(api.routePrefix, memberRoute);
-  const routeVerbs = Shared.makeRouteVerbs(acceptVerbs, route);
-  let middlewares: string[];
+  const verbs = acceptVerbs;
+  let middlewares: MiddewareProviderType[];
   if (api.middlewares) {
     if (middlewareKeys) {
-      middlewares = api.middlewares.concat(middlewareKeys);
+      middlewares = [...api.middlewares, ...middlewareKeys];
     } else{
       middlewares = api.middlewares;
     }
@@ -77,7 +85,8 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
   return {
     name,
     memberName: apiItem.propertyName,
-    routeVerbs,
+    route,
+    verbs,
     middlewares,
     func: apiItem.route.func,
     validateBody: apiItem.bodyValidator && apiItem.bodyValidator.validate,
@@ -89,7 +98,13 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
 export class Api{
   middlewareFunction(key: string) {
     return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
-      middlewares.push({key,func: target[methodName]});
+      registerMiddlewareFunction(key, target[methodName]);
+    }
+  }
+
+  middlewareProviderFunction(key: string, paramMin: number, paramMax = paramMin) {
+    return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
+      registerMiddlewareProvider(key,target[methodName],paramMin,paramMax)
     }
   }
 
@@ -100,15 +115,15 @@ export class Api{
   }
 
   route(path?: string) {
-    return apiDecorators.propCollect<IApiRoute>("route", (t, propertyName, type) => ({propertyName, path, func: t[propertyName]}))
+    return apiDecorators.memberCollect<IApiRoute>("route", (t, propertyName, type) => ({propertyName, path, func: t[propertyName]}))
   }
 
-  middleware(...middlewares: string[]) {
-    return apiDecorators.propCollect<IApiRouteMiddleware>("middleware", (t, propertyName, type) => ({propertyName, keys: middlewares}))
+  middleware(...middlewares: MiddewareProviderType[]) {
+    return apiDecorators.memberCollect<IApiRouteMiddleware>("middleware", (t, propertyName, type) => ({propertyName, keys: middlewares}))
   }
 
   acceptVerbs(...verbs: HttpVerb[]) {
-    return apiDecorators.propCollect<IApiRouteVerb>("verb", (t, propertyName, type) => ({propertyName, verbs}))
+    return apiDecorators.memberCollect<IApiRouteVerb>("verb", (t, propertyName, type) => ({propertyName, verbs}))
   }
 
   bodyValidator<T>(validate: IApiValidatorFunction<T>) {
@@ -120,12 +135,11 @@ export class Api{
   }
 
   paramsValidator<T>(validate: IApiValidatorFunction<T>) {
-    this.validator(v => v, "")
     return this.validator<T>(validate, "paramsValidator")
   }
 
   private validator<T>(validate: IApiValidatorFunction<T>, itemType: string) {
-    return apiDecorators.propCollect<IApiValidator<T>>(itemType, (t, propertyName, type) => ({propertyName, validate}))
+    return apiDecorators.memberCollect<IApiValidator<T>>(itemType, (t, propertyName, type) => ({propertyName, validate}))
   }
 }
 
