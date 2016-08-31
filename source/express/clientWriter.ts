@@ -1,10 +1,11 @@
 import * as ts from "typescript";
 import * as _ from "underscore";
 import * as fs from "fs";
-import {IApiClient} from "../client/apiClientBuilder";
+import {IApiClient,IApiClientRoute} from "../client/apiClientBuilder";
 import * as pathToRegexp from 'path-to-regexp'
 import {FileStreamWriter} from "../fileStreamWriter";
 
+/** Writes the api client to a single file, you need to override Fetcher.request to implement fetch */
 export function expressClientWriter(outFile: string, apiClient: IApiClient) {
   return FileStreamWriter.write(outFile, stream => {
     apiClient.refs.forEach(r => {
@@ -13,49 +14,89 @@ export function expressClientWriter(outFile: string, apiClient: IApiClient) {
 
     stream.write(`
 export class Fetcher {
-  static request = (url: string, verb: string, body?: any): Promise<any> => {
+  static request = (url: string, verb: string, contentType: string, body?: any): Promise<any> => {
     return null;
   }
 
-  static buildQueryString = (query: any) => {
+  static buildQueryStringValue = (value: any, key: string) => {
+    return value
+  }
+
+  static buildQueryString = (query?: any) => {
+    if (!query) {
+      return ""
+    }
     const qs = Object.keys(query).map(k => {
-      return \`\${k}=\${query[k]}\`
+      return \`\${k}=\${Fetcher.buildQueryStringValue(query[k], k)}\`
     }).join("&")
     return qs.length ? \`?\${qs}\` : ""
   }
 }
+
+function optionalParam(parameter) {
+  return parameter ? \`/\${parameter}\` : ""
+}
+
 `);
-    apiClient.controllers.forEach(apiClient => {
+    apiClient.controllers.forEach(controller => {
       stream.write(`
-export class ${apiClient.typeName} {
+export class ${controller.typeName} {
 `);
-      stream.write(apiClient.routes.map(r => {
+      stream.write(controller.routes.map(r => {
         const verbs = r.verbs
-        const keys:{name:string, optional: boolean}[]=[]
-        let route = r.route;
-        pathToRegexp(route, keys as any)
-        keys.forEach(k => {
-          if (k.optional) {
-            route = route.replace(`/:${k.name}?` , `\${params.${k.name} ? "/" + params.${k.name} : ""}`)
-            return
-          }
-          route = route.replace(":" + k.name, `\${params.${k.name}}`)
-        })
+        let route = resolveRoutePath(r)
         if (!isVoid(r.queryType)) {
           route += "${Fetcher.buildQueryString(query)}"
         }
         //const rt = console.log(keys)//.compile(r.route)
         const params = _.filter([formatTypeParam("body", r.bodyType), formatTypeParam("params", r.paramsType), formatTypeParam("query?", r.queryType)], q => !!q).join(",")
         return verbs.map((verb, index) => `
-    ${r.name}${index > 0 ? "_" + verb : ""}(${params}): Promise<${r.responseType}> {
-      const route = \`${route}\`
-      return Fetcher.request(route, "${verb}"${isVoid(r.bodyType) ? "" : ", body" })
-    }`).join("\n")
+  ${r.name}${index > 0 ? "_" + verb : ""}(${params}): Promise<${r.responseType}> {
+    return Fetcher.request(\`${route}\`, "${verb}", "${r.contentType}"${isVoid(r.bodyType) ? "" : ", body" })
+  }`).join("\n")
       }).join("\n"));
       stream.write(`
 }`);
     })
+
+    stream.write(`
+export class ApiClient {
+`);
+
+    apiClient.controllers.forEach(controller => {
+      stream.write(`
+  ${makeInstanceName(controller.typeName)} = new ${controller.typeName}()
+  `);
+    })
+
+    stream.write(`
+}
+export const apiClient = new ApiClient()
+`);
+
   })
+}
+
+function makeInstanceName(name: string){
+  const idx = name.indexOf("Controller")
+  if (idx > -1) {
+      name = name.substr(0, idx)
+  }
+  return name.substr(0,1).toLowerCase() + name.substr(1)
+}
+
+function resolveRoutePath(r: IApiClientRoute) {
+  let route = r.route;
+  const keys:{name:string, optional: boolean}[]=[]
+  pathToRegexp(route, keys as any)
+  keys.forEach(k => {
+    if (k.optional) {
+      route = route.replace(`/:${k.name}?` , `\${optionalParam(params.${k.name})}`)
+      return
+    }
+    route = route.replace(":" + k.name, `\${params.${k.name}}`)
+  })
+  return route
 }
 
 function isVoid(type: string) {

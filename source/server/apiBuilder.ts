@@ -2,55 +2,54 @@ import {Shared} from "../shared";
 import {ApiExplorer} from "./apiExplorer";
 import * as _ from "underscore";
 import {Logger} from "bunyan";
-import {IApiControllerRoute,IMiddewareFunction, IApiController,IApiBuilder, IApi,INewable, MiddewareProviderType, MiddewareFunctionDictionary} from "../core";
+import {IApiController,IApi, IRuntimeApi, MiddewareFunctionDictionary} from "../core";
 
-export class ApiBuilder implements IApiBuilder {
+/** Validates the supplied controllers and middleware functions and builds an IApi model */
+export class ApiBuilder {
+  /** Creates an instance of an ApiBuilder - can be singleton */
   constructor(protected logger: Logger){
   }
-  private errors: string[] = [];
-  protected onError(message: string){
-    this.errors.push(message);
+
+  protected onError(errors: string[], message: string){
+    errors.push(message);
     this.logger.error(message)
   }
 
-  protected reset(){
-    this.errors = []
+  /** Validates the supplied controllers and middleware functions and builds an IApi model */
+  buildRuntime(apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary): IRuntimeApi {
+    const api = this.build(apiControllers, middlewareFunctions)
+    return { errors: api.errors, controllers: api.controllers, middlewareFunctions };
   }
 
+  /** Validates the supplied controllers and middleware functions and builds an IApi model */
   build(apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary): IApi {
-    this.reset();
-    this.logger.trace(`Runtime Compile started`)
-    let controllers = apiControllers.filter(t => this.validateApiControllerRoutes(t));
-    const api = { controllers, errors: this.errors } as IApi;
-    this.validate(controllers, middlewareFunctions);
-    this.logger.trace(`Runtime Compile completed`)
+    const errors: string[] = [];
+    this.logger.trace(`Building Api model`)
+    let controllers = apiControllers.filter(t => this.filterApiControllerRoutes(t));
+    this.validate(errors, controllers, middlewareFunctions);
+    this.logger.trace(`Api model built ${errors.length ? " with errors" : ""}`)
+    const api: IApi = { controllers };
+    if (errors.length) {
+      api.errors = errors
+    }
     return api;
   }
 
-  private ensureNoDuplicateRoutes(apiControllers: IApiController[]) {
+  private validate(errors: string[], apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary) {
     ApiExplorer.getRouteErrors(apiControllers).forEach(error => {
-      this.onError(error);
+      this.onError(errors, error);
     })
-  }
-
-  private validate(apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary) {
-    this.ensureNoDuplicateRoutes(apiControllers)
-    const errors = ApiExplorer.getMiddlewareErrors(this.logger, apiControllers,middlewareFunctions)
-    if (errors.length) {
-      errors.forEach(err => this.onError(err))
+    const errs = ApiExplorer.getMiddlewareErrors(this.logger, apiControllers,middlewareFunctions)
+    if (errs.length) {
+      errs.forEach(err => this.onError(errors, err))
     }
   }
 
-  private validateApiControllerRoutes(apiController: IApiController) {
-    this.logger.trace(`Processing ${apiController.name}`)
+  private filterApiControllerRoutes(apiController: IApiController) {
+    this.logger.trace(`Processing controller ${apiController.name}`)
     const routes = apiController.routes;
     routes && routes.forEach(r => {
-      const value = r.func;
-      if (!value || !_.isFunction(value)) {
-        this.logger.trace(`- ${r.memberName} (ignored)`)
-        return;
-      }
-      this.logger.trace(`- ${r.memberName} ${r.route} [${r.verbs.map(rv => `${rv}`).join(",")}]`)
+      this.logger.trace(`: '${r.memberName}' @ "${r.route}" [verbs: ${r.verbs.join(",")}]`)
     })
     if (!routes || !routes.length) {
       this.logger.trace(`> no routes found (ignored)`)

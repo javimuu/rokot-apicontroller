@@ -37,24 +37,39 @@ export interface IPropertyMetadata {
   propertyName: string;
 }
 
+function mergeArrayProperties<T>(master:T, child:T) {
+  _.each(_.keys(master), k => {
+    const value = master[k]
+    const childValue = child[k]
+    if (_.isArray(value) || _.isArray(childValue)) {
+      master[k] = _.flatten([value,childValue])
+    }
+  })
+}
 export class DecoratorStore<T> {
   constructor(private metadataKey: string, private repository = new DecoratorRepository<T>()){
   }
-  fromClass(key: string, data: (target: Function) => T, postProcess?: (t:T) => void, protoProps?: string[]): ClassDecorator {
+  fromClass(key: string, data: (target: Function) => T, postProcess?: (t:T) => void, members?: string[]): ClassDecorator {
     return (target: Function) => {
       const dataItem = data(target);
-      if (protoProps && protoProps.length) {
+      if (members && members.length) {
         const items = dataItem["items"] = [] as IPropertyMetadata[]
-        protoProps && _.forEach(protoProps, prop => {
+        members && _.forEach(members, prop => {
           const data = Reflect.getMetadata(this.makePropKey(prop), target.prototype) as IPropertyMetadata[]
           data && _.forEach(data, d => {
             const found = _.find(items, i => i.propertyName === d.propertyName)
-            const di = {[prop]: _.omit(d, "propertyName")}
+            const cleaned = _.omit(d, "propertyName");
+            const di = {[prop]: cleaned}
             if (found) {
+              const existing = found[prop]
+              if (existing) {
+                mergeArrayProperties(existing, cleaned)
+                return
+              }
               _.extend(found, di)
               return
             }
-            items.push(_.extend({propertyName: d.propertyName}, di, items[d.propertyName]))
+            items.push(_.extend({propertyName: d.propertyName}, di)) //, items[d.propertyName]
           })
         })
       }

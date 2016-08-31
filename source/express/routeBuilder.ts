@@ -2,7 +2,7 @@ import * as express from 'express';
 import {Shared} from "../shared";
 import {RouteBuilder} from "../routeBuilder";
 import {Logger} from "bunyan";
-import {IApiRequest,MiddewareFunctionDictionary, IStringDictionary, IApiController,IMiddewareFunction,INewableConstructor,INewable, IApiRequestHandler, IApiControllerRoute} from "../core";
+import {IApiRequest,IApi,MiddewareFunctionDictionary, IStringDictionary, IApiController,IMiddewareFunction,INewableConstructor,INewable, IApiRequestHandler, IApiControllerRoute} from "../core";
 import * as _ from "underscore";
 
 export interface IExpressRequest {
@@ -44,8 +44,8 @@ export class ExpressApiRequest<TBody, TResponse, TParams, TQuery> implements IEx
 }
 
 export class ExpressRouteBuilder extends RouteBuilder {
-  constructor(logger: Logger, private server: express.Express, apiControllers: IApiController[], middlewareFunctions: MiddewareFunctionDictionary, controllerConstructor?: INewableConstructor<any>) {
-    super(logger, apiControllers, middlewareFunctions, controllerConstructor)
+  constructor(logger: Logger, private server: express.Express, controllerConstructor?: INewableConstructor<any>) {
+    super(logger,controllerConstructor)
   }
 
   protected createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any, any>) : express.RequestHandler {

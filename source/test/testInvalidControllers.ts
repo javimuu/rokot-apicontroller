@@ -18,49 +18,49 @@ interface IExtra {
 }
 
 
-@api.include("MiddlewareFailureController", "/middleware-failure", ["one", "two"])
+@api.controller("MiddlewareFailureController", "/middleware-failure", b => b.add("one").add("two"))
 class MiddlewareFailureController {
   @api.route(":id")
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   @api.middleware("logger")
   get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
   @api.route()
-  @api.acceptVerbs("get", "options")
-  @api.middleware({key: "logger", params:["too many", "too many"]})
+  @api.verbs("get", "options")
+  @api.middleware("logger", "one", "two (many)")
   getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.send(200,null)
   }
 }
 
-@api.include("MissingMiddlewareController", "/missingMiddleware", ["one", "two"])
+@api.controller("MissingMiddlewareController", "/missingMiddleware", b => b.add("one").add("two"))
 class MissingMiddlewareController {
   @api.route(":id")
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   @api.middleware("five")
   get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.sendOk(null)
   }
 
   @api.route()
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   getAll(req: IGetRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.sendOk(null)
   }
 }
 
-@api.include("SimpleRouteClashController")
+@api.controller("SimpleRouteClashController")
 class SimpleRouteClashController {
   @api.route("simple/:id")
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
   @api.route()
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
     req.send(200,null)
   }

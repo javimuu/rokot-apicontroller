@@ -53,6 +53,22 @@ class Middleware {
     console.log("three")
     next();
   }
+
+  @api.middlewareProviderFunction("logger", 1)
+  static logger(log:string){
+    return (req: Express.Request, res: Express.Response, next: () => void) => {
+      console.log(log, req)
+      next();
+    }
+  }
+
+  @api.middlewareProviderFunction("simplelogger",0, 1)
+  static simplelogger(log?:string){
+    return (req: Express.Request, res: Express.Response, next: () => void) => {
+      console.log(log || "Unknown", req)
+      next();
+    }
+  }
 }
 ```
 
@@ -67,7 +83,7 @@ registerMiddlewareFunction("four", (req: Express.Request, res: Express.Response,
 
 ```
 
-You can optionally create your own request to customise the request object:
+You can optionally create your own request to shape the request handler object:
 
 ```typescript
 import {IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
@@ -113,7 +129,7 @@ export class CustomExpressRouteBuilder extends ExpressRouteBuilder{
 You can then specify controllers and their routes:
 
 ```typescript
-import {api, IExpressApiRequest, ExpressRouteBuilder, ExpressApiRequest, IExpressRequest} from "rokot-apicontroller";
+import {api} from "rokot-apicontroller";
 import {IRequest, IGetRequest, IUser} from "./expressRequest"; // from file above
 import * as express from "express";
 
@@ -124,17 +140,26 @@ interface IGroup{
   members: IUser[];
 }
 
-@api.include("middleware", "/middleware", ["one", "two"])
+/*
+Register the MiddlewareController
+: all route paths are prefixed with "/middleware"
+: all routes use the middleware function "one"
+  then the resolved middleware via provider "logger"
+  (using "MiddlewareController" as the required param)
+*/
+@api.controller("MiddlewareController", "/middleware", b => b.add("one").add("logger", "MiddlewareController"))
 class MiddlewareController {
+
   @api.route(":id")
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
+  @api.middleware("two")
   @api.middleware("three")
   get(req: IGetRequest<IGroup,{id: string},void>) {
     req.sendOk({id: req.params.id, name:"group", members:[{id:"1", name: "User 1"}]});
   }
 
   @api.route()
-  @api.acceptVerbs("get", "options")
+  @api.verbs("get", "options")
   getAll(req: IGetRequest<IGroup[],void,void>) {
     req.sendOk([
       {id: "1", name:"group", members:[{id:"1", name: "User 1"}]}
@@ -142,6 +167,7 @@ class MiddlewareController {
   }
 
   @api.route()
+  @api.contentType("application/x-www-form-urlencoded")
   post(req: IRequest<IGroup,IGroup,void,void>) {
     req.sendCreated(req.body);
   }
@@ -154,20 +180,27 @@ class MiddlewareController {
 }
 ```
 
-To build your routes you can now
+To build your routes you can
 
 ```typescript
 import {CustomExpressRouteBuilder} from "./expressRequest"; // from file above
-import {apiControllers, middlewareFunctions} from "rokot-apicontroller";
+import {ApiBuilder, apiControllers, middlewareFunctions} from "rokot-apicontroller";
 import {ConsoleLogger} from "rokot-log";
 import * as express from 'express';
 
 const app = express();
 const logger = ConsoleLogger.create("Api Routes", {level: "trace"});
 
-const builder = new CustomExpressRouteBuilder(logger, app, apiControllers, middlewareFunctions);
-const api = builder.build();
-if (!api || api.errors.length) {
+const apiBuilder = new ApiBuilder(logger)
+const runtimeApi = apiBuilder.buildRuntime(apiControllers, middlewareFunctions)
+if (runtimeApi.errors && runtimeApi.errors.length) {
+  console.log("Unable to build api model - Service stopping!")
+  return;
+}
+
+const builder = new CustomExpressRouteBuilder(logger, app);
+const ok = builder.build(runtimeApi);
+if (!ok) {
   console.log("Unable to build express routes - Service stopping!")
   return;
 }
@@ -183,23 +216,27 @@ The route methods should be instance members, and have a single param `req` of t
 It strongly types all aspects of the request to make consuming them simpler within the route
 
 
-There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TNative` with `{ req: express.Request, res: express.Response, next: express.NextFunction }`
+There is a corresponding `IExpressApiRequest<TBody, TResponse, TParams, TQuery>` that supplies the `TNative` with `{ request: express.Request, response: express.Response, next: express.NextFunction }`
 
-The `@api.include` decorator allows you to specify a controller name, path prefix, and optionally the middleware keys to apply to all the controller contained routes.
+The `@api.controller` decorator allows you to specify a controller name, route path prefix, and optionally the middleware keys to apply to all the controller contained routes.
+
+NOTE: Its strongly recommended to supply the name of the class as the first parameter of `@api.controller`
 
 The `@api.route` decorator must be supplied on all controller routes, it specifies the route path of the operation.
 
-The `@api.middleware("three")` decorator on the route method allows you to specify addition middleware to implement within the route.
+The optional `@api.middleware("three")` decorator on the route method allows you to specify addition middleware to implement within the route (you can apply this decorator multiple times per route to add additional middleware's).
 
 The controllers middleware will run (in specified order) before the routes middleware is run (also in specified order)
 
-The route verb (`get`,`put`,`post`,`delete` etc) is determined by:
+The route verb (`get`,`put`,`post`,`delete` etc) is determined by the following rules:
 
 1. If the route method is named exactly as a verb - that verb is used.
-2. If you specify an `@api.acceptVerbs(...)` decorator - that verb (or those verbs) will be used.
+2. If you specify the optional `@api.verbs(...)` decorator - that verb (or those verbs) will be used.
 3. if all else fails, `get`.
 
-The route path is determined by combining the (optional) `routePrefix` from `@api.include` with the `@api.route` decorator values
+The route path is determined by combining the (optional) `routePrefix` from `@api.controller` with the `@api.route` decorator values
+
+The optional `@api.contentType` decorator can be applied once on any controller routes, it specifies the content type of the request body (the default is `"application/json"`).
 
 ## Consumed Libraries
 

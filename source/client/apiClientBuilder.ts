@@ -3,12 +3,14 @@ import * as _ from "underscore";
 import * as fs from "fs";
 import {ITypeReg, ApiReflector} from "./apiReflector";
 import {Logger} from "bunyan";
-import {IApi} from "../core";
+import {IApi,IMiddlewareKey} from "../core";
 
 export interface IApiClientRoute {
   name: string
   route: string
   verbs: string[]
+  contentType: string
+  middleware: IMiddlewareKey[]
   bodyType: string
   queryType: string
   paramsType: string
@@ -38,7 +40,7 @@ function getTypeArgument(node: ts.TypeReferenceNode, index: number){
   return node.typeArguments[index].getText();
 }
 
-function findRouteVerbs(api: IApi, typeName: string, memberName: string) {
+function findRoute(api: IApi, typeName: string, memberName: string) {
   const found = _.find(api.controllers, c => c.name === typeName)
   if (!found) {
     return;
@@ -46,6 +48,7 @@ function findRouteVerbs(api: IApi, typeName: string, memberName: string) {
   return _.find(found.routes, r => r.memberName === memberName)
 }
 
+/** Builds api clients using type information obtained by reflecting the ApiController source code*/
 export class ApiClientBuilder{
   constructor(private logger: Logger){}
 
@@ -78,20 +81,22 @@ export class ApiClientBuilder{
         const response = getTypeArgument(rt, indexStart)
         const params = getTypeArgument(rt, indexStart + 1)
         const query = getTypeArgument(rt, indexStart + 2)
-        const routeVerbs = findRouteVerbs(api, controller.typeName, name)
-        if (!routeVerbs) {
+        const route = findRoute(api, controller.typeName, name)
+        if (!route) {
           this.logger.error(`Unable to find api route/verbs for controller type '${controller.typeName}' member: '${name}'`)
           return
         }
 
         controller.routes.push({
           name,
+          contentType: route.contentType,
+          middleware: route.middlewares,
           bodyType: body,
           queryType: query,
           paramsType: params,
           responseType: response,
-          verbs: routeVerbs.verbs,
-          route: routeVerbs.route
+          verbs: route.verbs,
+          route: route.route
         })
       })
 

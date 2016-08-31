@@ -31,7 +31,7 @@ export class ApiReflector {
 
     const allTypes = _.values(types);
     const included = allTypes.filter(t => {
-      const items = ApiReflector.getApiAttr(t.node.decorators, "include");
+      const items = ApiReflector.getApiAttr(t.node.decorators, "controller");
       return items && items.length > 0
     })
 

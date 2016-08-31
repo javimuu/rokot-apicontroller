@@ -17,47 +17,50 @@ interface IExtra {
 
 }
 
-@api.include("MiddlewareController", "/middleware", ["one", "two"])
+@api.controller("MiddlewareController", "/middleware", b => b.add("one").add("two"))
 class MiddlewareController {
   @api.route(":id")
-  @api.acceptVerbs("get", "options")
-  @api.middleware("three", "simplelogger")
+  @api.verbs("get", "options")
+  @api.middleware("three", "auto-remove-redundant-param")
+  @api.middleware("simplelogger")
   get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
   @api.route(":key/:subKey?")
-  @api.acceptVerbs("get", "options")
-  @api.middleware("three", {key: "logger", params:["getAll!!"]})
+  @api.verbs("get", "options")
+  @api.middleware("three")
+  @api.middleware("logger", "getAll!!")
   getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,{key: string, subKey?:string},IExtra>) {
     req.send(200,null)
   }
 }
 
-@api.include("SimpleController", "/simple")
+@api.controller("SimpleController", "/simple")
 class SimpleController {
   @api.route(":id")
-  @api.acceptVerbs("get", "options")
-  get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
+  @api.verbs("get", "options")
+  get(req: IGetRequest<ISimpleResponse,{id: string},IExtra>) {
     req.send(200,null)
   }
 
   @api.route()
-  @api.acceptVerbs("get")
-  getAll(req: IRequest<void,ISimpleResponse|IComplexResponse,void,IExtra>) {
+  @api.verbs("get")
+  getAll(req: IRequest<void,ISimpleResponse,void,IExtra>) {
     req.send(200,null)
   }
 }
 
-@api.include("NoVerbsRouteController")
+@api.controller("NoVerbsRouteController")
 class NoVerbsRouteController {
   @api.route("/:id")
-  get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},void>) {
+  get(req: IGetRequest<IComplexResponse,{id: string},void>) {
     req.send(200,null)
   }
 
   @api.route()
-  post(req: IRequest<void,ISimpleResponse|IComplexResponse,void,void>) {
+  @api.contentType("application/x-www-form-urlencoded")
+  post(req: IRequest<ISimpleResponse,IComplexResponse,void,void>) {
     req.send(200,null)
   }
 }

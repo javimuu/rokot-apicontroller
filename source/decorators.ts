@@ -1,4 +1,4 @@
-import {IApiController,IApiControllerRoute, IMiddewareFunction,INewable,MiddewareProviderType,IMiddewareProvider, MiddewareFunctionDictionary} from "./core";
+import {HttpVerb,AllowedHttpVerbs, IApiController,IApiControllerRoute, IMiddewareFunction,INewable,IMiddlewareKey, MiddewareFunctionDictionary} from "./core";
 import 'reflect-metadata';
 import {DecoratorStore, IPropertyMetadata} from "./decoration";
 import {Shared} from "./shared";
@@ -9,7 +9,7 @@ interface IApiRoute {
 }
 
 interface IApiRouteMiddleware {
-  keys: MiddewareProviderType[]
+  keys: IMiddlewareKey[]
 }
 
 interface IApiValidator<T> {
@@ -23,11 +23,15 @@ export interface IApiValidatorFunction<T> {
 interface IApiRouteVerb {
   verbs: HttpVerb[]
 }
+interface IApiRouteContentType {
+  contentType: string
+}
 
 interface IApiItemDecoration extends IPropertyMetadata {
   route?: IApiRoute
   middleware?: IApiRouteMiddleware
   verb?: IApiRouteVerb
+  contentType?: IApiRouteContentType
   bodyValidator?: IApiValidator<any>
   queryValidator?: IApiValidator<any>
   paramsValidator?: IApiValidator<any>
@@ -36,20 +40,25 @@ interface IApiItemDecoration extends IPropertyMetadata {
 interface IApiDecoration {
   name: string
   routePrefix?: string
-  middlewares?: MiddewareProviderType[]
+  middlewares?: IMiddlewareKey[]
   controllerClass: INewable<IApiController>;
   items?: IApiItemDecoration[]
 }
 
 const apiDecorators = new DecoratorStore<IApiDecoration>("controller")
 
+/** the complete set of Api Controllers that have been loaded (indicated via @api.controller) */
 export const apiControllers: IApiController[] = []
+
+/** the complete set of Middleware functions that have been loaded (indicated via @api.middlewareFunction or @api.middlewareProviderFunction) */
 export const middlewareFunctions: MiddewareFunctionDictionary = {}
 
+/** Register a named middleware function */
 export function registerMiddlewareFunction(key: string, func: Function) {
   middlewareFunctions[key] = {key, func}
 }
 
+/** Register a function that can be called with a specified min/max number of parameters that will return a middleware function */
 export function registerMiddlewareProvider(key: string, func: Function, paramMin: number, paramMax = paramMin) {
   middlewareFunctions[key] = {key, func,paramMin,paramMax}
 }
@@ -68,11 +77,12 @@ function makeApiController(decorator: IApiDecoration): IApiController {
 function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoration): IApiControllerRoute {
   const memberRoute = apiItem.route ? apiItem.route.path : Shared.defaultRoute()
   const middlewareKeys = apiItem.middleware ? apiItem.middleware.keys : Shared.defaultMiddleware()
+  const contentType = apiItem.contentType ? apiItem.contentType.contentType : Shared.defaultContentType()
   const acceptVerbs = apiItem.verb ? apiItem.verb.verbs : Shared.defaultVerbs(apiItem.propertyName)
   const name = Shared.makeRouteName(api.name, apiItem.propertyName);
   const route = Shared.makeRoute(api.routePrefix, memberRoute);
   const verbs = acceptVerbs;
-  let middlewares: MiddewareProviderType[];
+  let middlewares: IMiddlewareKey[];
   if (api.middlewares) {
     if (middlewareKeys) {
       middlewares = [...api.middlewares, ...middlewareKeys];
@@ -87,6 +97,7 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
     memberName: apiItem.propertyName,
     route,
     verbs,
+    contentType,
     middlewares,
     func: apiItem.route.func,
     validateBody: apiItem.bodyValidator && apiItem.bodyValidator.validate,
@@ -95,45 +106,82 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
   };
 }
 
+function buildMiddlewareKey(key: string, params: any[]): IMiddlewareKey {
+  if (!params || !params.length) {
+    return {key}
+  }
+  return {key, params}
+}
+
+export interface IMiddlewareKeyBuilder {
+  add(key: string, ...params: any[]): IMiddlewareKeyBuilder
+}
+
+class MiddewareKeyBuilder implements IMiddlewareKeyBuilder {
+  keys: IMiddlewareKey[] = []
+  add(key: string, ...params: any[]): IMiddlewareKeyBuilder{
+    this.keys.push(buildMiddlewareKey(key, params))
+    return this;
+  }
+}
+
 export class Api{
+  /** Indicate a named middleware function */
   middlewareFunction(key: string) {
     return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
       registerMiddlewareFunction(key, target[methodName]);
     }
   }
 
+  /** Indicate that this function can be called with a specified min/max number of parameters, and will return a middleware function */
   middlewareProviderFunction(key: string, paramMin: number, paramMax = paramMin) {
     return function(target: any, methodName: string, descriptor?: PropertyDescriptor) {
       registerMiddlewareProvider(key,target[methodName],paramMin,paramMax)
     }
   }
 
-  include(name: string, routePrefix?: string, middlewares?: string[]) {
+  /** Indictes a class (the Api Controller) whose members provide REST route methods */
+  controller(name: string, routePrefix?: string, middlewareBuilder?: (b: IMiddlewareKeyBuilder) => void) {
     return apiDecorators.fromClass(name, (t) => {
+      let middlewares: IMiddlewareKey[];
+      if (middlewareBuilder) {
+        const mwb = new MiddewareKeyBuilder()
+        middlewareBuilder(mwb)
+        middlewares = mwb.keys
+      }
       return {name, middlewares, routePrefix, controllerClass:t as any}
-    }, makeApiController, ["route", "middleware", "verb", "bodyValidator", "queryValidator", "paramsValidator"])
+    }, makeApiController, ["route", "middleware", "verb", "bodyValidator", "queryValidator", "paramsValidator", "contentType"])
   }
 
+  /** Indicates an Api Controller route (expressing the route path as something your engines routing understands) (can define ONLY ONCE per route - last one wins!) */
   route(path?: string) {
     return apiDecorators.memberCollect<IApiRoute>("route", (t, propertyName, type) => ({propertyName, path, func: t[propertyName]}))
   }
 
-  middleware(...middlewares: MiddewareProviderType[]) {
-    return apiDecorators.memberCollect<IApiRouteMiddleware>("middleware", (t, propertyName, type) => ({propertyName, keys: middlewares}))
+  /** Associate ONE middleware with the route (can define multiple per route)*/
+  middleware(key: string, ...params: any[]) {
+    return apiDecorators.memberCollect<IApiRouteMiddleware>("middleware", (t, propertyName, type) => ({propertyName, keys: [buildMiddlewareKey(key, params)]}))
   }
 
-  acceptVerbs(...verbs: HttpVerb[]) {
+  /** Implicity define the REST verb(s) to be used by the route (can define ONLY ONCE per route - last one wins!)*/
+  verbs(...verbs: HttpVerb[]) {
     return apiDecorators.memberCollect<IApiRouteVerb>("verb", (t, propertyName, type) => ({propertyName, verbs}))
   }
+  contentType(contentType: string) {
+    return apiDecorators.memberCollect<IApiRouteContentType>("contentType", (t, propertyName, type) => ({propertyName, contentType}))
+  }
 
+  /** Define a validator function for the request body (can define ONLY ONCE per route - last one wins!)*/
   bodyValidator<T>(validate: IApiValidatorFunction<T>) {
     return this.validator<T>(validate, "bodyValidator")
   }
 
+  /** Define a validator function for the request query string (can define ONLY ONCE per route - last one wins!)*/
   queryValidator<T>(validate: IApiValidatorFunction<T>) {
     return this.validator<T>(validate, "queryValidator")
   }
 
+  /** Define a validator function for the expected url parameters (can define ONLY ONCE per route - last one wins!)*/
   paramsValidator<T>(validate: IApiValidatorFunction<T>) {
     return this.validator<T>(validate, "paramsValidator")
   }
@@ -143,8 +191,5 @@ export class Api{
   }
 }
 
-
+/** The decorators required to define Api Controllers */
 export const api = new Api()
-// NOTE: Its important to keep AllowedHttpVerbs and HttpVerbs in sync
-export const AllowedHttpVerbs = ["options", "get", "head", "post", "put", "delete", "patch"]
-export type HttpVerb = "options" | "get" | "head" | "post" | "put" | "delete" | "patch"

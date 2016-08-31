@@ -4,6 +4,7 @@ import * as fs from "fs";
 import {ConsoleLogger,Logger} from "rokot-log";
 import "./testMiddleware";
 import {ExpressRouteBuilder, ExpressApiRequest,IExpressApiRequest,IExpressRequest} from "../express/routeBuilder";
+import {ApiBuilder} from "../server/apiBuilder";
 import * as express from "express";
 import {api,apiControllers, middlewareFunctions} from "../decorators";
 export interface IUser{
@@ -31,7 +32,9 @@ export class CustomExpressRouteBuilder extends ExpressRouteBuilder{
   }
 }
 
-@api.include("AuthController", "/auth")
+const logger = ConsoleLogger.create("custom-express-test",{level:"trace"});
+
+@api.controller("AuthController", "/auth")
 class AuthController {
   @api.route(":id")
   get(req: IVoidRequest<string,{id: string}, void>) {
@@ -42,15 +45,19 @@ class AuthController {
   }
 }
 describe("Custom ExpressRouteBuilder", () => {
-  it("should compile 'auth' without errors", () => {
-    const logger = ConsoleLogger.create("Api Routes", {level: "trace"});
+  it("should compile 'AuthController' without errors", () => {
     const spy = sinon.spy()
     const app = {get:spy} as any
-    const builder = new CustomExpressRouteBuilder(logger, app, apiControllers.filter(c => c.name === "AuthController"),middlewareFunctions);
-    const api = builder.build();
-    expect(api.errors.length).to.eq(0, "Should have no errors")
-    expect(api.controllers.length).to.eq(1, "Should have 1 controller")
-    expect(api.controllers[0].routes.length).to.eq(1, "Should have 1 routes")
+    const apiBuilder = new ApiBuilder(logger)
+    const runtimeApi = apiBuilder.buildRuntime(apiControllers.filter(c => c.name === "AuthController"),middlewareFunctions)
+    expect(runtimeApi).to.not.be.undefined
+    expect(runtimeApi.errors).to.undefined
+    expect(runtimeApi.controllers.length).to.eq(1, "Should have 1 controller")
+    expect(runtimeApi.controllers[0].routes.length).to.eq(1, "Should have 1 routes")
+
+    const builder = new CustomExpressRouteBuilder(logger, app);
+    const ok = builder.build(runtimeApi);
+    expect(ok).to.be.true
     expect(spy.callCount).to.eq(1)
     expect(spy.firstCall.args.length).to.eq(2)
     expect(spy.firstCall.args[0]).to.eq("/auth/:id")

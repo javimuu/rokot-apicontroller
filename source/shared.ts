@@ -1,6 +1,5 @@
 import * as _ from "underscore";
-import {AllowedHttpVerbs} from "./decorators";
-import {INewable,INewableConstructor} from "./core";
+import {INewable,INewableConstructor,AllowedHttpVerbs, HttpVerb,IMiddlewareKey} from "./core";
 
 export class Shared {
   static construct<T>(controllerClass: INewable<T>, controllerName: string, controllerConstructor: INewableConstructor<T>): T {
@@ -8,18 +7,22 @@ export class Shared {
   }
 
   static defaultVerbs(memberName: string) {
-    if (AllowedHttpVerbs.indexOf(memberName) > -1) {
-      return [memberName];
+    if (AllowedHttpVerbs.indexOf(memberName as HttpVerb) > -1) {
+      return [memberName as HttpVerb];
     }
-    return ["get"];
+    return ["get" as HttpVerb];
   }
 
   static defaultRoute() {
     return "";
   }
 
-  static defaultMiddleware() : string[] {
+  static defaultMiddleware() : IMiddlewareKey[] {
     return undefined;
+  }
+
+  static defaultContentType() : string {
+    return "application/json";
   }
 
   private static ensureSlash(route: string) {
