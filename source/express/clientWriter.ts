@@ -1,4 +1,3 @@
-import * as ts from "typescript";
 import * as _ from "underscore";
 import * as fs from "fs";
 import {IApiClient,IApiClientRoute} from "../client/apiClientBuilder";
@@ -6,15 +5,22 @@ import * as pathToRegexp from 'path-to-regexp'
 import {FileStreamWriter} from "../fileStreamWriter";
 
 /** Writes the api client to a single file, you need to override Fetcher.request to implement fetch */
-export function expressClientWriter(outFile: string, apiClient: IApiClient) {
+export function expressClientWriter(outFile: string, apiClient: IApiClient, genericResponseWrapper?: (type: string) => string, ...imports: string[]) {
   return FileStreamWriter.write(outFile, stream => {
+    if (imports) {
+      imports.forEach(i => {
+        stream.write(`${i}\n`);
+      })
+    }
     apiClient.refs.forEach(r => {
       stream.write(`export ${r}\n`);
     })
 
+    const responseType = genericResponseWrapper ? genericResponseWrapper("T") : "T"
+
     stream.write(`
 export class Fetcher {
-  static request = (url: string, verb: string, contentType: string, body?: any): Promise<any> => {
+  static request = <T>(url: string, verb: string, contentType: string, body?: any): Promise<${responseType}> => {
     return null;
   }
 
@@ -48,11 +54,12 @@ export class ${controller.typeName} {
         if (!isVoid(r.queryType)) {
           route += "${Fetcher.buildQueryString(query)}"
         }
+        const responseType = genericResponseWrapper ? genericResponseWrapper(r.responseType) : r.responseType
         //const rt = console.log(keys)//.compile(r.route)
         const params = _.filter([formatTypeParam("body", r.bodyType), formatTypeParam("params", r.paramsType), formatTypeParam("query?", r.queryType)], q => !!q).join(",")
         return verbs.map((verb, index) => `
-  ${r.name}${index > 0 ? "_" + verb : ""}(${params}): Promise<${r.responseType}> {
-    return Fetcher.request(\`${route}\`, "${verb}", "${r.contentType}"${isVoid(r.bodyType) ? "" : ", body" })
+  ${r.name}${index > 0 ? "_" + verb : ""}(${params}): Promise<${responseType}> {
+    return Fetcher.request<${r.responseType}>(\`${route}\`, "${verb}", "${r.contentType}"${isVoid(r.bodyType) ? "" : ", body" })
   }`).join("\n")
       }).join("\n"));
       stream.write(`
