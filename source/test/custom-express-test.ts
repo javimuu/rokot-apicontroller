@@ -39,7 +39,7 @@ class AuthController {
   @api.route(":id")
   get(req: IVoidRequest<string,{id: string}, void>) {
     if (req.isAuthenticated()) {
-      req.sendOk(null)
+      req.sendOk("OK")
     }
     req.send(400,null)
   }

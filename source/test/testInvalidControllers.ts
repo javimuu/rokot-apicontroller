@@ -41,13 +41,13 @@ class MissingMiddlewareController {
   @api.verbs("get", "options")
   @api.middleware("five")
   get(req: IGetRequest<ISimpleResponse|IComplexResponse,{id: string},IExtra>) {
-    req.sendOk(null)
+    req.sendOk({} as ISimpleResponse)
   }
 
   @api.route()
   @api.verbs("get", "options")
   getAll(req: IGetRequest<ISimpleResponse|IComplexResponse,void,IExtra>) {
-    req.sendOk(null)
+    req.sendOk({} as ISimpleResponse)
   }
 }
 

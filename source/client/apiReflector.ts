@@ -160,7 +160,10 @@ export class ApiReflector {
     return ts.SyntaxKind[kind].indexOf("Keyword") > -1
   }
 
-  private processTypeNode(typeNode: ts.TypeNode, foundRegs: ITypeReg[], types: ITypeRegDictionary): boolean {
+  private processTypeNode(typeNode: ts.TypeNode | undefined, foundRegs: ITypeReg[], types: ITypeRegDictionary): boolean {
+    if (!typeNode) {
+      return false;
+    }
     if (this.isKeywordType(typeNode.kind)) {
       return true;
     }
@@ -215,17 +218,19 @@ export class ApiReflector {
       }
     })
   }
-
   private getBaseSymbols(type: ts.Type, types: ITypeRegDictionary): ITypeReg[] {
     const bt = type.getBaseTypes();
-    const tt = bt ? bt.map(t => {
-      return this.findSymbolNode(t.symbol, types)
+    const tt = bt ? bt.filter(t => t.symbol).map(t => {
+      return this.findSymbolNode(t.symbol as ts.Symbol, types)
     }) : []
+    if (typeof tt === "undefined") {
+      return []
+    }
     const dd: ITypeReg[] = _.flatten(tt.map(t => this.getBaseSymbols(t.type, types)));
     return tt.concat(dd);
   }
 
-  static getApiAttr(decorators: ts.Decorator[], name: string) {
+  static getApiAttr(decorators: ts.Decorator[] | undefined, name: string) {
     if (!decorators || !decorators.length) {
       return
     }

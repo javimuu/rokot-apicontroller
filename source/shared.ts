@@ -2,7 +2,7 @@ import * as _ from "underscore";
 import {INewable,INewableConstructor,AllowedHttpVerbs, HttpVerb,IMiddlewareKey} from "./core";
 
 export class Shared {
-  static construct<T>(controllerClass: INewable<T>, controllerName: string, controllerConstructor: INewableConstructor<T>): T {
+  static construct<T>(controllerClass: INewable<T>, controllerName: string, controllerConstructor?: INewableConstructor<T>): T {
     return controllerConstructor ? controllerConstructor(controllerClass, controllerName) : new controllerClass();
   }
 
@@ -17,7 +17,7 @@ export class Shared {
     return "";
   }
 
-  static defaultMiddleware() : IMiddlewareKey[] {
+  static defaultMiddleware() : IMiddlewareKey[] | undefined {
     return undefined;
   }
 
@@ -25,18 +25,21 @@ export class Shared {
     return "application/json";
   }
 
-  private static ensureSlash(route: string) {
+  private static ensureSlash(route?: string) {
+    if (!route) {
+      return ""
+    }
     if (route.indexOf("/") !== 0) {
       return `/${route}`
     }
     return route
   }
 
-  private static isEmptyRoute(route: string) {
+  private static isEmptyRoute(route?: string) {
     return !route || route === "/"
   }
 
-  static makeRoute(routePrefix: string, memberRoute: string) {
+  static makeRoute(routePrefix?: string, memberRoute?: string) : string {
     if (this.isEmptyRoute(routePrefix)) {
       if (this.isEmptyRoute(memberRoute)) {
         return "/"

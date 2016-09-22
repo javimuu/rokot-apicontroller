@@ -14,9 +14,9 @@ export abstract class RouteBuilder {
 
   protected abstract createRequestHandler(route: IApiControllerRoute, routeHandler:IApiRequestHandler<any, any, any, any, any>) : Function;
   protected abstract setupRoute(route: IApiControllerRoute, verb: string, requestHandlers: Function[]);
-  protected abstract createValidatorMiddleware(route: IApiControllerRoute): Function;
+  protected abstract createValidatorMiddleware(route: IApiControllerRoute): Function | undefined;
 
-  private validateRequestInput(req: {}, part: string, validate: (item: any) => any){
+  private validateRequestInput(req: {}, part: string, validate?: (item: any) => any){
     if (!validate) {
       return;
     }

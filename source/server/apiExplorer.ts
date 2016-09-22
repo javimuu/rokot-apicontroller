@@ -84,7 +84,7 @@ export class ApiExplorer {
     const safeLength = key.params ? key.params.length : 0
     if (_.isUndefined(mwf.paramMin) || _.isUndefined(mwf.paramMax)) {
       if (safeLength > 0) {
-        logger.warn(`Middleware function: '${mwf.key}' does not require parameters, but is being supplied with values '${key.params.join(',')}' that will never be used`)
+        logger.warn(`Middleware function: '${mwf.key}' does not require parameters, but is being supplied with values '${key.params ? key.params.join(',') : ""}' that will never be used`)
         delete key.params
       }
 

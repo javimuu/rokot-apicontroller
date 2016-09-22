@@ -10,7 +10,7 @@ export interface IApiClientRoute {
   route: string
   verbs: string[]
   contentType: string
-  middleware: IMiddlewareKey[]
+  middleware: IMiddlewareKey[] | undefined
   bodyType: string
   queryType: string
   paramsType: string
@@ -37,6 +37,9 @@ function makeRef(source: string) {
 }
 
 function getTypeArgument(node: ts.TypeReferenceNode, index: number){
+  if (!node || !node.typeArguments) {
+    return "";
+  }
   return node.typeArguments[index].getText();
 }
 

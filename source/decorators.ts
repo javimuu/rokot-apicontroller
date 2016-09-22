@@ -28,7 +28,7 @@ interface IApiRouteContentType {
 }
 
 interface IApiItemDecoration extends IPropertyMetadata {
-  route?: IApiRoute
+  route: IApiRoute
   middleware?: IApiRouteMiddleware
   verb?: IApiRouteVerb
   contentType?: IApiRouteContentType
@@ -66,7 +66,7 @@ export function registerMiddlewareProvider(key: string, func: Function, paramMin
 function makeApiController(decorator: IApiDecoration): IApiController {
   const c = {
     name:decorator.name,
-    routes: decorator.items.map(i => buildApiControllerRoute(i, decorator)),
+    routes: !decorator.items ? [] : decorator.items.map(i => buildApiControllerRoute(i, decorator)),
     controllerClass: decorator.controllerClass
   }
 
@@ -82,7 +82,7 @@ function buildApiControllerRoute(apiItem: IApiItemDecoration, api: IApiDecoratio
   const name = Shared.makeRouteName(api.name, apiItem.propertyName);
   const route = Shared.makeRoute(api.routePrefix, memberRoute);
   const verbs = acceptVerbs;
-  let middlewares: IMiddlewareKey[];
+  let middlewares: IMiddlewareKey[] | undefined;
   if (api.middlewares) {
     if (middlewareKeys) {
       middlewares = [...api.middlewares, ...middlewareKeys];
@@ -143,11 +143,13 @@ export class Api{
   /** Indictes a class (the Api Controller) whose members provide REST route methods */
   controller(name: string, routePrefix?: string, middlewareBuilder?: (b: IMiddlewareKeyBuilder) => void) {
     return apiDecorators.fromClass(name, (t) => {
-      let middlewares: IMiddlewareKey[];
+      let middlewares: IMiddlewareKey[] | undefined;
       if (middlewareBuilder) {
         const mwb = new MiddewareKeyBuilder()
         middlewareBuilder(mwb)
         middlewares = mwb.keys
+      } else{
+        middlewares = undefined
       }
       return {name, middlewares, routePrefix, controllerClass:t as any}
     }, makeApiController, ["route", "middleware", "verb", "bodyValidator", "queryValidator", "paramsValidator", "contentType"])
@@ -155,7 +157,7 @@ export class Api{
 
   /** Indicates an Api Controller route (expressing the route path as something your engines routing understands) (can define ONLY ONCE per route - last one wins!) */
   route(path?: string) {
-    return apiDecorators.memberCollect<IApiRoute>("route", (t, propertyName, type) => ({propertyName, path, func: t[propertyName]}))
+    return apiDecorators.memberCollect<IApiRoute>("route", (t, propertyName, type) => ({propertyName, path: path || "", func: t[propertyName]}))
   }
 
   /** Associate ONE middleware with the route (can define multiple per route)*/

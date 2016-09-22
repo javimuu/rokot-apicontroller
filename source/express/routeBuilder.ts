@@ -54,7 +54,7 @@ export class ExpressRouteBuilder extends RouteBuilder {
     }
   }
 
-  protected createValidatorMiddleware(route: IApiControllerRoute): express.RequestHandler{
+  protected createValidatorMiddleware(route: IApiControllerRoute): express.RequestHandler | undefined{
     if (!route.validateBody && !route.validateParams && !route.validateQuery) {
       return;
     }

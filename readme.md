@@ -7,12 +7,6 @@ Rokot - [Rocketmakers](http://www.rocketmakers.com/) TypeScript NodeJs Platform
 A typescript decorators based solution to declaratively define routes for REST based api
 This library creates metadata about the defined routes to allow auto route generation
 
->The Rokot platform components heavily rely on usage of the [typings](https://github.com/typings/typings) utility for typescript definitions management.
-If you don't have `typings` installed:
-```
-npm i typings -g
-```
-
 ## Getting Started
 
 ### Installation
@@ -23,11 +17,9 @@ npm i rokot-apicontroller --save
 
 ### Typings
 
-You will also need these ambient dependencies:
->NOTE: you might already have some of these ambient dependencies installed!
-
+You will also need these npm @types:
 ```
-typings i dt~body-parser dt~bunyan dt~express dt~express-serve-static-core dt~mime dt~node dt~serve-static dt~underscore -SG
+npm i @types/body-parser @types/bunyan @types/express @types/express-serve-static-core @types/mime @types/node @types/serve-static @types/underscore -SD
 ```
 
 ## Example

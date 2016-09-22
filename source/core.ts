@@ -42,7 +42,7 @@ export interface IApiController {
   /** The routes of the controller */
   routes: IApiControllerRoute[];
   /** the controller class, creates an instance of the Api Controller */
-  controllerClass?: INewable<any>;
+  controllerClass: INewable<any>;
 }
 
 export interface INewable<T>{

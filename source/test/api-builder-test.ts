@@ -77,10 +77,17 @@ describe("Api Builder - validates the @api decorated assets while creating an Ap
     expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
     expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
     expect(api.controllers[0].routes[0].name).to.eq("MiddlewareController_get", `1st route should be 'get'`)
-    expect(api.controllers[0].routes[0].middlewares.length).to.eq(4, `1st route should have 4 middleware`)
+    let mw = api.controllers[0].routes[0].middlewares;
+    expect(mw).to.not.undefined
+    if (mw) {
+      expect(mw.length).to.eq(4, `1st route should have 4 middleware`)
+    }
     expect(api.controllers[0].routes[1].name).to.eq("MiddlewareController_getAll", `2nd route should be 'get'`)
-    expect(api.controllers[0].routes[1].middlewares.length).to.eq(4, `2nd route should have 4 middleware`)
-
+    mw = api.controllers[0].routes[1].middlewares;
+    expect(mw).to.not.undefined
+    if (mw) {
+      expect(mw.length).to.eq(4, `2nd route should have 4 middleware`)
+    }
     // var mw = new MiddlewareProvider(logger, middlewares)
     // var middleware = mw.get(middlewareOnly);
     // expect(_.keys(middleware).length).to.eq(3, `Should have 3 middleware`)
@@ -91,7 +98,10 @@ describe("Api Builder - validates the @api decorated assets while creating an Ap
     const controllerCompiler = new ApiBuilder(logger)
     const api = controllerCompiler.build(middlewareOnly,middlewareFunctions)
     //var api = compile("out/reflected.json", controllerCompiler)
-    expect(api.errors.length).to.eq(2, `Should get 2 errors ${api.errors.join(":")}`)
+    expect(api.errors).to.not.undefined
+    if (api.errors) {
+      expect(api.errors.length).to.eq(2, `Should get 2 errors ${api.errors.join(":")}`)
+    }
     // expect(api.controllers.length).to.eq(1, `Should get 1 controller`)
     // expect(api.controllers[0].routes.length).to.eq(2, `Should get 2 routes`)
     // expect(api.controllers[0].routes.filter(m => !!m.func).length).to.eq(2, "Should have a function on each route")
@@ -110,16 +120,20 @@ describe("Api Builder - validates the @api decorated assets while creating an Ap
     const controllerCompiler = new ApiBuilder(logger)
     const api = controllerCompiler.build(simpleAndClashOnly,{})
     //var api = compile("out/reflected.json", controllerCompiler)
-    expect(api.errors.length).to.eq(2, `Should get 2 errors`)
-    //console.log(api.errors)
+    expect(api.errors).to.not.undefined
+    if (api.errors) {
+      expect(api.errors.length).to.eq(2, `Should get 2 errors`)
+    }
   });
   it("should fail on 'MissingMiddlewareController' route - 1 missing middleware", () => {
     const missingMiddlewareOnly = apiControllers.filter(a => a.name === "MissingMiddlewareController")
     const controllerCompiler = new ApiBuilder(logger)
     const api = controllerCompiler.build(missingMiddlewareOnly,middlewareFunctions)
     //var api = compile("out/reflected.json", controllerCompiler)
-    expect(api.errors.length).to.eq(1, `Should get 1 errors`)
-    //console.log(api.errors)
+    expect(api.errors).to.not.undefined
+    if (api.errors) {
+      expect(api.errors.length).to.eq(1, `Should get 1 errors`)
+    }
   });
 })
 

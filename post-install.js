@@ -2,7 +2,7 @@ console.log();
 console.log("-------------------------------");
 console.log("Now run:");
 console.log();
-console.log("typings i dt~body-parser dt~bunyan dt~express dt~express-serve-static-core dt~mime dt~node dt~serve-static dt~underscore -SG");
+console.log("npm i @types/body-parser @types/bunyan @types/express @types/express-serve-static-core @types/mime @types/node @types/serve-static @types/underscore -SD");
 console.log();
 console.log("-------------------------------");
 console.log();
