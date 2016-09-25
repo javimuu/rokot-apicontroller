@@ -15,13 +15,6 @@ Install via `npm`
 npm i rokot-apicontroller --save
 ```
 
-### Typings
-
-You will also need these npm @types:
-```
-npm i @types/body-parser @types/bunyan @types/express @types/express-serve-static-core @types/mime @types/node @types/serve-static @types/underscore -SD
-```
-
 ## Example
 
 If you want to specify any additional custom Middleware, you can define them as below and annotate with the `middleware` decorator
