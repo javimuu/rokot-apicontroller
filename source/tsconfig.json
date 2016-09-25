@@ -13,7 +13,7 @@
         "noLib": false,
         "preserveConstEnums": false,
         "suppressImplicitAnyIndexErrors": true,
-        "outDir": "../dist",
+        "outDir": "../lib",
         "strictNullChecks": true
     }
 }
