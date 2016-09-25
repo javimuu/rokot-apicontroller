@@ -18,8 +18,8 @@
     "body-parser": "^1.15.2",
     "bunyan": "^1.8.1",
     "express": "^4.14.0",
-    "rokot-log": "^0.2.2",
-    "rokot-test": "^0.2.3",
+    "rokot-log": "^0.2.5",
+    "rokot-test": "^0.2.5",
     "ts-loader": "^0.8.2",
     "typescript": "^2.0.3"
   },
@@ -30,7 +30,7 @@
     "express": "4.x"
   },
   "dependencies": {
-    "@types/underscore": "1.x",
+    "@types/underscore": "*",
     "reflect-metadata": "^0.1.8",
     "underscore": "^1.8.3"
   },
