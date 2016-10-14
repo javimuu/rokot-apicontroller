@@ -8,7 +8,7 @@ import {FileStreamWriter} from "../fileStreamWriter";
 import {apiControllers,middlewareFunctions} from "../decorators";
 import "./testControllers";
 import "./testMiddleware";
-
+import "chai-as-promised";
 const logger = ConsoleLogger.create("api-client-test",{level:"trace"});
 
 describe("Api Client", () => {
@@ -38,5 +38,7 @@ describe("Api Client", () => {
     })).eventually.fulfilled
 
     expect(expressClientWriter("./out/client.ts", apiClient)).eventually.fulfilled
+    expect(expressClientWriter("./out/client.d.ts", apiClient, {mode: "Definitions"})).eventually.fulfilled
+    expect(expressClientWriter("./out/clientControllers.ts", apiClient, {mode: "Controllers"})).eventually.fulfilled
   })
 })

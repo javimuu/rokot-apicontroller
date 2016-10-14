@@ -1,11 +1,12 @@
 {
   "name": "rokot-apicontroller",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Api Controller generation for express",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
   "scripts": {
     "build": "tsc -p source -d",
+    "prepublish": "npm run build",
     "debug": "npm run build && node . --debug=5858",
     "debugtest": "npm run build && mocha --debug-brk",
     "test": "npm run build && mocha"
