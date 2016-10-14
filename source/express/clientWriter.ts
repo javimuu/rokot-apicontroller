@@ -23,7 +23,7 @@ export function expressClientWriter(outFile: string, apiClient: IApiClient, opti
     if (mode !== "Controllers") {
       apiClient.refs.forEach(r => {
         if (mode === "Definitions") {
-          stream.write(`${r}\n`);
+          stream.write(`${r.indexOf("enum ") === 0 ? "declare " : ""} ${r}\n`);
           return
         }
         stream.write(`export ${r}\n`);
